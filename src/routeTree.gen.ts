@@ -16,8 +16,10 @@ import { Route as AuthenticatedViaturasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticated/unidades'
 import { Route as AuthenticatedRondasRouteImport } from './routes/_authenticated/rondas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
+import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
+import { Route as AuthenticatedFuncionariosRouteImport } from './routes/_authenticated/funcionarios'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
 import { Route as AuthenticatedEquipesRouteImport } from './routes/_authenticated/equipes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -60,6 +62,11 @@ const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
+  id: '/ponto',
+  path: '/ponto',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOcorrenciasRoute =
   AuthenticatedOcorrenciasRouteImport.update({
     id: '/ocorrencias',
@@ -71,6 +78,12 @@ const AuthenticatedMapaRoute = AuthenticatedMapaRouteImport.update({
   path: '/mapa',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFuncionariosRoute =
+  AuthenticatedFuncionariosRouteImport.update({
+    id: '/funcionarios',
+    path: '/funcionarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEscalasRoute = AuthenticatedEscalasRouteImport.update({
   id: '/escalas',
   path: '/escalas',
@@ -119,8 +132,10 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipes': typeof AuthenticatedEquipesRoute
   '/escalas': typeof AuthenticatedEscalasRoute
+  '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/ponto': typeof AuthenticatedPontoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
   '/unidades': typeof AuthenticatedUnidadesRoute
@@ -136,8 +151,10 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipes': typeof AuthenticatedEquipesRoute
   '/escalas': typeof AuthenticatedEscalasRoute
+  '/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/ponto': typeof AuthenticatedPontoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
   '/unidades': typeof AuthenticatedUnidadesRoute
@@ -155,8 +172,10 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipes': typeof AuthenticatedEquipesRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
+  '/_authenticated/funcionarios': typeof AuthenticatedFuncionariosRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
+  '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/rondas': typeof AuthenticatedRondasRoute
   '/_authenticated/unidades': typeof AuthenticatedUnidadesRoute
@@ -174,8 +193,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipes'
     | '/escalas'
+    | '/funcionarios'
     | '/mapa'
     | '/ocorrencias'
+    | '/ponto'
     | '/relatorios'
     | '/rondas'
     | '/unidades'
@@ -191,8 +212,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipes'
     | '/escalas'
+    | '/funcionarios'
     | '/mapa'
     | '/ocorrencias'
+    | '/ponto'
     | '/relatorios'
     | '/rondas'
     | '/unidades'
@@ -209,8 +232,10 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/equipes'
     | '/_authenticated/escalas'
+    | '/_authenticated/funcionarios'
     | '/_authenticated/mapa'
     | '/_authenticated/ocorrencias'
+    | '/_authenticated/ponto'
     | '/_authenticated/relatorios'
     | '/_authenticated/rondas'
     | '/_authenticated/unidades'
@@ -274,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ponto': {
+      id: '/_authenticated/ponto'
+      path: '/ponto'
+      fullPath: '/ponto'
+      preLoaderRoute: typeof AuthenticatedPontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ocorrencias': {
       id: '/_authenticated/ocorrencias'
       path: '/ocorrencias'
@@ -286,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/mapa'
       fullPath: '/mapa'
       preLoaderRoute: typeof AuthenticatedMapaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/funcionarios': {
+      id: '/_authenticated/funcionarios'
+      path: '/funcionarios'
+      fullPath: '/funcionarios'
+      preLoaderRoute: typeof AuthenticatedFuncionariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/escalas': {
@@ -348,8 +387,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipesRoute: typeof AuthenticatedEquipesRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
+  AuthenticatedFuncionariosRoute: typeof AuthenticatedFuncionariosRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
+  AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRondasRoute: typeof AuthenticatedRondasRoute
   AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRoute
@@ -364,8 +405,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipesRoute: AuthenticatedEquipesRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
+  AuthenticatedFuncionariosRoute: AuthenticatedFuncionariosRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
+  AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRondasRoute: AuthenticatedRondasRoute,
   AuthenticatedUnidadesRoute: AuthenticatedUnidadesRoute,
