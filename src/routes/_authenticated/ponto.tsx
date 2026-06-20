@@ -1,0 +1,189 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin } from "lucide-react";
+import { toast } from "sonner";
+
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+export const Route = createFileRoute("/_authenticated/ponto")({
+  component: PontoPage,
+});
+
+type PunchType = "entrada" | "almoco_saida" | "almoco_volta" | "saida";
+
+type Entry = {
+  id: string;
+  user_id: string;
+  punch_type: PunchType;
+  punched_at: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+const STEPS: { type: PunchType; label: string; icon: typeof LogIn; color: string }[] = [
+  { type: "entrada", label: "Entrada", icon: LogIn, color: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40" },
+  { type: "almoco_saida", label: "Saída p/ almoço", icon: Coffee, color: "bg-amber-500/15 text-amber-300 border-amber-500/40" },
+  { type: "almoco_volta", label: "Volta do almoço", icon: Utensils, color: "bg-sky-500/15 text-sky-300 border-sky-500/40" },
+  { type: "saida", label: "Saída", icon: LogOut, color: "bg-rose-500/15 text-rose-300 border-rose-500/40" },
+];
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+function PontoPage() {
+  const { user, isStaff } = useAuth();
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [punching, setPunching] = useState<PunchType | null>(null);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const load = async () => {
+    setLoading(true);
+    let query = supabase.from("time_entries").select("*").order("punched_at", { ascending: false }).limit(100);
+    if (!isStaff && user) query = query.eq("user_id", user.id);
+    const { data } = await query;
+    setEntries((data ?? []) as Entry[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (user) load(); /* eslint-disable-next-line */ }, [user?.id, isStaff]);
+
+  const todayMine = useMemo(() => {
+    const todayStr = new Date().toDateString();
+    return entries.filter((e) => e.user_id === user?.id && new Date(e.punched_at).toDateString() === todayStr);
+  }, [entries, user?.id]);
+
+  const doneToday = new Set(todayMine.map((e) => e.punch_type));
+  const nextStep = STEPS.find((s) => !doneToday.has(s.type))?.type ?? null;
+
+  const punch = async (type: PunchType) => {
+    if (!user) return;
+    setPunching(type);
+    let lat: number | null = null;
+    let lng: number | null = null;
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) => {
+        if (!navigator.geolocation) return rej(new Error("geo"));
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 });
+      });
+      lat = pos.coords.latitude; lng = pos.coords.longitude;
+    } catch { /* opcional */ }
+
+    const { error } = await supabase.from("time_entries").insert({
+      user_id: user.id, punch_type: type, latitude: lat, longitude: lng,
+    });
+    setPunching(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${STEPS.find((s) => s.type === type)?.label} registrada`);
+    load();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Ponto</h1>
+        <p className="text-sm text-muted-foreground">Entrada, almoço, volta e saída — registro com data, hora e geolocalização.</p>
+      </div>
+
+      <div className="rounded-2xl border border-border/60 bg-card/40 p-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Agora</p>
+            <p className="text-3xl font-mono font-bold tracking-tight">{now.toLocaleTimeString("pt-BR")}</p>
+            <p className="text-xs text-muted-foreground">{now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
+          </div>
+          <Badge variant="outline" className="text-xs">Jornada de hoje</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {STEPS.map((s) => {
+            const entry = todayMine.find((e) => e.punch_type === s.type);
+            const isNext = nextStep === s.type;
+            const Icon = s.icon;
+            return (
+              <div key={s.type} className={`rounded-xl border p-4 ${entry ? s.color : "bg-card/60 border-border/60"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className="h-4 w-4" />
+                  <span className="text-sm font-medium">{s.label}</span>
+                </div>
+                {entry ? (
+                  <>
+                    <p className="text-2xl font-mono font-bold">{fmtTime(entry.punched_at)}</p>
+                    {entry.latitude != null && (
+                      <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> {entry.latitude.toFixed(4)}, {entry.longitude!.toFixed(4)}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full mt-1"
+                    variant={isNext ? "default" : "outline"}
+                    disabled={!isNext || punching === s.type}
+                    onClick={() => punch(s.type)}
+                  >
+                    {punching === s.type ? "Registrando..." : isNext ? "Bater ponto" : "Aguardando"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {!nextStep && <p className="mt-4 text-sm text-emerald-300">✓ Jornada de hoje finalizada.</p>}
+      </div>
+
+      <div className="rounded-xl border border-border/60 bg-card/40 overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/60 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Histórico {isStaff ? "(toda a equipe)" : "(seus registros)"}</h2>
+        </div>
+        <div className="max-h-[500px] overflow-auto">
+          {loading ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">Carregando...</p>
+          ) : entries.length === 0 ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">Nenhum registro ainda.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left p-3">Data</th>
+                  <th className="text-left p-3">Hora</th>
+                  <th className="text-left p-3">Tipo</th>
+                  <th className="text-left p-3">Local</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => {
+                  const s = STEPS.find((x) => x.type === e.punch_type)!;
+                  return (
+                    <tr key={e.id} className="border-t border-border/40">
+                      <td className="p-3">{fmtDate(e.punched_at)}</td>
+                      <td className="p-3 font-mono">{fmtTime(e.punched_at)}</td>
+                      <td className="p-3"><Badge variant="outline" className={s.color}>{s.label}</Badge></td>
+                      <td className="p-3 text-xs text-muted-foreground">
+                        {e.latitude != null ? `${e.latitude.toFixed(4)}, ${e.longitude!.toFixed(4)}` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
