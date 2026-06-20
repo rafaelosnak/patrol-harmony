@@ -1,0 +1,108 @@
+import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Bell, LogOut, Languages, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export const Route = createFileRoute("/_authenticated")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw redirect({ to: "/auth" });
+    return { user: data.user };
+  },
+  component: AuthedLayout,
+});
+
+function AuthedLayout() {
+  const { t, lang, setLang } = useI18n();
+  const { profile, roles } = useAuth();
+  const navigate = useNavigate();
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Até logo!");
+    navigate({ to: "/auth" });
+  };
+
+  const initials = (profile?.full_name || "P G").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="sticky top-0 z-30 h-14 flex items-center gap-3 border-b border-border/60 bg-background/80 backdrop-blur px-3">
+            <SidebarTrigger />
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-primary" />
+              <span className="font-semibold tracking-tight">PhytonGuard</span>
+              <span className="hidden sm:inline text-xs text-muted-foreground">— {t("app.tagline")}</span>
+            </div>
+
+            <div className="ml-auto flex items-center gap-1">
+              <Button variant="ghost" size="icon" aria-label="Notificações">
+                <Bell className="h-4 w-4" />
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Idioma">
+                    <Languages className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{t("settings.lang")}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLang("pt")} className={lang === "pt" ? "text-primary" : ""}>
+                    Português (BR)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLang("en")} className={lang === "en" ? "text-primary" : ""}>
+                    English
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 hover:bg-accent transition-colors">
+                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-primary/50 grid place-items-center text-[11px] font-bold text-primary-foreground">
+                      {initials}
+                    </div>
+                    <span className="hidden sm:flex flex-col items-start leading-tight">
+                      <span className="text-xs font-medium">{profile?.full_name || "Operador"}</span>
+                      <span className="text-[10px] uppercase text-muted-foreground">{roles[0] ?? "—"}</span>
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>{profile?.email ?? ""}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="h-4 w-4 mr-2" /> {t("auth.signout")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+
+          <main className="flex-1 p-4 sm:p-6 max-w-[1600px] w-full mx-auto">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
