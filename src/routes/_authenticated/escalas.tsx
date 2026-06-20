@@ -82,6 +82,8 @@ function ShiftsPage() {
                       <SelectItem value="12x36">12x36</SelectItem>
                       <SelectItem value="5x1">5x1</SelectItem>
                       <SelectItem value="6x1">6x1</SelectItem>
+                      <SelectItem value="4x2">4x2</SelectItem>
+                      <SelectItem value="5x2">5x2</SelectItem>
                       <SelectItem value="custom">Personalizada</SelectItem>
                     </SelectContent>
                   </Select>
