@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Users, Footprints, AlertOctagon, Siren,
   CalendarClock, Truck, Megaphone, Building2, MapPin, BarChart3, Settings, ShieldAlert,
+  UserCog, Clock,
 } from "lucide-react";
 
 import {
@@ -27,11 +28,13 @@ export function AppSidebar() {
         { title: t("nav.rounds"), url: "/rondas", icon: Footprints },
         { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
         { title: t("nav.alerts"), url: "/alertas", icon: Siren },
+        { title: "Ponto", url: "/ponto", icon: Clock },
       ],
     },
     {
       label: t("nav.group.management"),
       items: [
+        { title: "Funcionários", url: "/funcionarios", icon: UserCog },
         { title: t("nav.shifts"), url: "/escalas", icon: CalendarClock },
         { title: t("nav.vehicles"), url: "/viaturas", icon: Truck },
         { title: t("nav.announcements"), url: "/comunicados", icon: Megaphone },

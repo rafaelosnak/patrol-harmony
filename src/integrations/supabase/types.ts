@@ -289,6 +289,39 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          note: string | null
+          punch_type: Database["public"]["Enums"]["punch_type"]
+          punched_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          note?: string | null
+          punch_type: Database["public"]["Enums"]["punch_type"]
+          punched_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          note?: string | null
+          punch_type?: Database["public"]["Enums"]["punch_type"]
+          punched_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       units: {
         Row: {
           address: string | null
@@ -401,9 +434,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_supervisor_or_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "coordenador" | "supervisor" | "central" | "vigia"
+      punch_type: "entrada" | "almoco_saida" | "almoco_volta" | "saida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -532,6 +567,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "coordenador", "supervisor", "central", "vigia"],
+      punch_type: ["entrada", "almoco_saida", "almoco_volta", "saida"],
     },
   },
 } as const
