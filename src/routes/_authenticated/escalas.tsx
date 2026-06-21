@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { CalendarClock, Plus } from "lucide-react";
+import { CalendarClock, Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -20,17 +20,22 @@ export const Route = createFileRoute("/_authenticated/escalas")({
   component: ShiftsPage,
 });
 
+type Shift = { id: string; user_id: string; unit_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
+
 function ShiftsPage() {
   const { t } = useI18n();
-  const { isStaff } = useAuth();
+  const { isStaff, hasRole } = useAuth();
+  const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Shift | null>(null);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const [form, setForm] = useState({
+  const defaultForm = {
     user_id: "", unit_id: "", shift_type: "12x36",
     start_at: today.toISOString().slice(0, 16),
     end_at: new Date(today.getTime() + 12 * 3600000).toISOString().slice(0, 16),
-  });
+  };
+  const [form, setForm] = useState(defaultForm);
 
   const { data, isLoading } = useQuery({
     queryKey: ["shifts"],
@@ -39,26 +44,53 @@ function ShiftsPage() {
   const { data: people } = useQuery({ queryKey: ["profiles-min"], queryFn: async () => (await supabase.from("profiles").select("id,full_name")).data ?? [] });
   const { data: units } = useQuery({ queryKey: ["units-min"], queryFn: async () => (await supabase.from("units").select("id,name")).data ?? [] });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("shifts").insert({
+      const payload = {
         user_id: form.user_id, unit_id: form.unit_id || null, shift_type: form.shift_type,
         start_at: new Date(form.start_at).toISOString(), end_at: new Date(form.end_at).toISOString(),
-      });
-      if (error) throw error;
+      };
+      if (editing) {
+        const { error } = await supabase.from("shifts").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("shifts").insert(payload);
+        if (error) throw error;
+      }
     },
-    onSuccess: () => { toast.success("Escala criada"); qc.invalidateQueries({ queryKey: ["shifts"] }); setOpen(false); },
+    onSuccess: () => {
+      toast.success(editing ? "Escala atualizada" : "Escala criada");
+      qc.invalidateQueries({ queryKey: ["shifts"] });
+      setOpen(false); setEditing(null); setForm(defaultForm);
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("shifts").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { toast.success("Escala removida"); qc.invalidateQueries({ queryKey: ["shifts"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const openNew = () => { setEditing(null); setForm(defaultForm); setOpen(true); };
+  const openEdit = (s: Shift) => {
+    setEditing(s);
+    setForm({
+      user_id: s.user_id, unit_id: s.unit_id ?? "", shift_type: s.shift_type,
+      start_at: new Date(s.start_at).toISOString().slice(0, 16),
+      end_at: new Date(s.end_at).toISOString().slice(0, 16),
+    });
+    setOpen(true);
+  };
 
   return (
     <div className="space-y-4">
       <PageHeader title={t("shifts.title")} subtitle={t("shifts.subtitle")} actions={
         isStaff && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4" />{t("shifts.new")}</Button></DialogTrigger>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild><Button onClick={openNew}><Plus className="h-4 w-4" />{t("shifts.new")}</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>{t("shifts.new")}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editing ? "Editar escala" : t("shifts.new")}</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div>
                   <Label>{t("common.name")}</Label>
@@ -94,8 +126,8 @@ function ShiftsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-                <Button onClick={() => create.mutate()} disabled={!form.user_id || create.isPending}>{t("common.create")}</Button>
+                <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>{t("common.cancel")}</Button>
+                <Button onClick={() => save.mutate()} disabled={!form.user_id || save.isPending}>{editing ? "Salvar" : t("common.create")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -112,11 +144,12 @@ function ShiftsPage() {
               <th className="text-left px-4 py-3">{t("common.start")}</th>
               <th className="text-left px-4 py-3">{t("common.end")}</th>
               <th className="text-left px-4 py-3">{t("common.status")}</th>
+              {isStaff && <th className="text-right px-4 py-3">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
-            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={6}><EmptyState icon={CalendarClock} title={t("common.empty")} /></td></tr>}
+            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
+            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={7}><EmptyState icon={CalendarClock} title={t("common.empty")} /></td></tr>}
             {(data ?? []).map((s) => {
               const profile = (s as unknown as { profiles?: { full_name?: string } }).profiles;
               const unit = (s as unknown as { units?: { name?: string } }).units;
@@ -128,6 +161,14 @@ function ShiftsPage() {
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.start_at).toLocaleString()}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.end_at).toLocaleString()}</td>
                   <td className="px-4 py-3"><Pill>{s.status}</Pill></td>
+                  {isStaff && (
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(s as Shift)}><Pencil className="h-3 w-3" /></Button>
+                        {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir escala?")) del.mutate(s.id); }}><Trash2 className="h-3 w-3" /></Button>}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
