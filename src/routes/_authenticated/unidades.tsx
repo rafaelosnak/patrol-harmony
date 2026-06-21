@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { MapPin, Plus, Pencil, Trash2 } from "lucide-react";
+import { MapPin, Plus, Pencil, Trash2, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader } from "@/components/pg/ui";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/unidades")({
   component: UnitsPage,
 });
 
-type Unit = { id: string; name: string; client_id: string | null; address: string | null };
+type Unit = { id: string; name: string; client_id: string | null; address: string | null; phone: string | null };
 
 function UnitsPage() {
   const { t } = useI18n();
@@ -30,7 +30,7 @@ function UnitsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
-  const [form, setForm] = useState({ name: "", client_id: "", address: "" });
+  const [form, setForm] = useState({ name: "", client_id: "", address: "", phone: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["units"],
@@ -40,22 +40,22 @@ function UnitsPage() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const payload = {
+        name: form.name, client_id: form.client_id || null,
+        address: form.address || null, phone: form.phone || null,
+      };
       if (editing) {
-        const { error } = await supabase.from("units").update({
-          name: form.name, client_id: form.client_id || null, address: form.address || null,
-        }).eq("id", editing.id);
+        const { error } = await supabase.from("units").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("units").insert({
-          name: form.name, client_id: form.client_id || null, address: form.address || null,
-        });
+        const { error } = await supabase.from("units").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       toast.success(editing ? "Unidade atualizada" : "Unidade cadastrada");
       qc.invalidateQueries({ queryKey: ["units"] });
-      setOpen(false); setEditing(null); setForm({ name: "", client_id: "", address: "" });
+      setOpen(false); setEditing(null); setForm({ name: "", client_id: "", address: "", phone: "" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -66,8 +66,8 @@ function UnitsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ name: "", client_id: "", address: "" }); setOpen(true); };
-  const openEdit = (u: Unit) => { setEditing(u); setForm({ name: u.name, client_id: u.client_id ?? "", address: u.address ?? "" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ name: "", client_id: "", address: "", phone: "" }); setOpen(true); };
+  const openEdit = (u: Unit) => { setEditing(u); setForm({ name: u.name, client_id: u.client_id ?? "", address: u.address ?? "", phone: u.phone ?? "" }); setOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -87,6 +87,7 @@ function UnitsPage() {
                   </Select>
                 </div>
                 <div><Label>{t("common.address")}</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} maxLength={200} /></div>
+                <div><Label>Telefone / WhatsApp</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+55 11 99999-9999" maxLength={32} /></div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>{t("common.cancel")}</Button>
@@ -110,6 +111,15 @@ function UnitsPage() {
                   <div className="font-semibold truncate">{u.name}</div>
                   <div className="text-xs text-muted-foreground truncate">{client?.name ?? "—"}</div>
                   <div className="text-xs text-muted-foreground mt-1 truncate">{u.address ?? "—"}</div>
+                  {u.phone && (
+                    <a
+                      href={`https://wa.me/${u.phone.replace(/\D/g, "")}`}
+                      target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-status-working mt-1 hover:underline"
+                    >
+                      <Phone className="h-3 w-3" /> {u.phone}
+                    </a>
+                  )}
                 </div>
                 {canWrite && (
                   <div className="flex flex-col gap-1">

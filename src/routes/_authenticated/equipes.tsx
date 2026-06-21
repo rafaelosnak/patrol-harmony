@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/equipes")({
   component: TeamsPage,
 });
 
-type AppRole = "admin" | "supervisor" | "vigia";
+type AppRole = "admin" | "supervisor" | "vigia" | "central";
 type Member = { id: string; full_name: string; email: string | null; status: string; created_at: string; roles: AppRole[] };
 
 function TeamsPage() {
@@ -132,6 +132,7 @@ function TeamsPage() {
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="central">Central de Apoio</SelectItem>
                   <SelectItem value="vigia">Vigia</SelectItem>
                 </SelectContent>
               </Select>

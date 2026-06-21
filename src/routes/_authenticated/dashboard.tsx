@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
-  Users, Footprints, AlertOctagon, Siren, Timer, CheckCircle2, Radio, UserCheck,
+  Users, Footprints, AlertOctagon, Siren, Timer, CheckCircle2, Radio, UserCheck, CalendarClock,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid,
@@ -43,6 +43,20 @@ function Dashboard() {
       };
     },
     refetchInterval: 15000,
+  });
+
+  // Monthly schedule (current month) — visible for all logged-in users
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const monthEnd = new Date(monthStart); monthEnd.setMonth(monthEnd.getMonth() + 1);
+  const { data: monthShifts } = useQuery({
+    queryKey: ["dashboard-month-shifts", monthStart.toISOString()],
+    queryFn: async () => (await supabase
+      .from("shifts")
+      .select("id,user_id,unit_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), units(name)")
+      .gte("start_at", monthStart.toISOString())
+      .lt("start_at", monthEnd.toISOString())
+      .order("start_at", { ascending: true })
+    ).data ?? [],
   });
 
   const profileMap: Record<string, string> = {};
@@ -184,6 +198,45 @@ function Dashboard() {
               );
             })}
           </ul>
+        )}
+      </div>
+
+      {/* Escala do mês */}
+      <div className="glass rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-primary" />
+            Escala do mês — {monthStart.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+          </h3>
+          <span className="text-[11px] text-muted-foreground">{(monthShifts ?? []).length} turnos</span>
+        </div>
+        {(monthShifts ?? []).length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma escala lançada para este mês.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr><th className="text-left py-2">Dia</th><th className="text-left">Vigia</th><th className="text-left">Unidade</th><th className="text-left">Turno</th><th className="text-left">Horário</th></tr>
+              </thead>
+              <tbody>
+                {(monthShifts ?? []).map((s) => {
+                  const profile = (s as unknown as { profiles?: { full_name?: string } }).profiles;
+                  const unit = (s as unknown as { units?: { name?: string } }).units;
+                  const st = new Date(s.start_at);
+                  const en = new Date(s.end_at);
+                  return (
+                    <tr key={s.id} className="border-t border-border/40">
+                      <td className="py-1.5 font-mono text-xs">{st.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</td>
+                      <td className="truncate max-w-[180px]">{profile?.full_name ?? "—"}</td>
+                      <td className="text-muted-foreground truncate max-w-[160px]">{unit?.name ?? "—"}</td>
+                      <td><Pill tone="info">{s.shift_type}</Pill></td>
+                      <td className="text-xs text-muted-foreground">{st.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} → {en.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

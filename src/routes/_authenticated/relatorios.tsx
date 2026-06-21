@@ -374,6 +374,10 @@ function ReportPreviewDialog({
           )}
         </div>
 
+        {report?.key === "rondas" && filteredRows.length > 0 && (
+          <RoundPhotosSection roundIds={filteredRows.map((r) => r.id as string)} ctx={data?.ctx} />
+        )}
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
           <Button variant="outline" onClick={exportCsv} disabled={!tableRows.length}>
@@ -390,4 +394,43 @@ function ReportPreviewDialog({
 
 function escapeHtml(s: string) {
   return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+function RoundPhotosSection({ roundIds, ctx }: { roundIds: string[]; ctx?: Ctx }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["round-report-photos", roundIds.sort().join(",")],
+    enabled: roundIds.length > 0,
+    queryFn: async () => {
+      const { data: cps } = await supabase
+        .from("round_checkpoints")
+        .select("round_id,label,photo_url,created_at")
+        .in("round_id", roundIds)
+        .not("photo_url", "is", null)
+        .order("created_at", { ascending: true });
+      const items = (cps ?? []) as { round_id: string; label: string | null; photo_url: string; created_at: string }[];
+      const signed = await Promise.all(items.map(async (it) => {
+        const { data: s } = await supabase.storage.from("round-photos").createSignedUrl(it.photo_url, 3600);
+        return { ...it, url: s?.signedUrl ?? "" };
+      }));
+      return signed.filter((s) => s.url);
+    },
+  });
+  if (isLoading) return <div className="mt-3 text-xs text-muted-foreground">Carregando fotos…</div>;
+  if (!data || data.length === 0) return null;
+  return (
+    <div className="mt-4 rounded-md border border-border/60 p-3">
+      <div className="text-sm font-semibold mb-2">Fotos dos pontos ({data.length})</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+        {data.map((p, i) => (
+          <a key={i} href={p.url} target="_blank" rel="noreferrer" className="block group">
+            <div className="aspect-square rounded-md overflow-hidden bg-muted">
+              <img src={p.url} alt={p.label ?? "Foto da ronda"} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-1 truncate">{p.label ?? "Ponto"}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{ctx?.profiles ? "" : ""}{new Date(p.created_at).toLocaleString("pt-BR")}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
 }
