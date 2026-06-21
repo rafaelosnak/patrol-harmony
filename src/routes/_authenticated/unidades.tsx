@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/unidades")({
 function UnitsPage() {
   const { t } = useI18n();
   const { hasRole } = useAuth();
-  const canWrite = hasRole("admin") || hasRole("coordenador");
+  const canWrite = hasRole("admin") || hasRole("supervisor");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", client_id: "", address: "" });
