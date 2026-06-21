@@ -301,9 +301,26 @@ function ReportPreviewDialog({
     if (!win) return;
     const headers = report.cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
     const body = tableRows.map((r) => `<tr>${r.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+    const periodo = (fromDate || toDate)
+      ? `Período: ${fromDate ? new Date(fromDate + "T00:00:00").toLocaleDateString("pt-BR") : "início"} até ${toDate ? new Date(toDate + "T00:00:00").toLocaleDateString("pt-BR") : "hoje"}`
+      : "Período: todos os registros";
+    const companyHeader = company ? `
+      <div class="company">
+        <div class="company-name">${escapeHtml(company.name)}</div>
+        <div class="company-meta">
+          ${company.cnpj ? `<span><strong>CNPJ:</strong> ${escapeHtml(company.cnpj)}</span>` : ""}
+          ${company.contact_phone ? `<span><strong>Tel:</strong> ${escapeHtml(company.contact_phone)}</span>` : ""}
+          ${company.contact_email ? `<span><strong>E-mail:</strong> ${escapeHtml(company.contact_email)}</span>` : ""}
+        </div>
+        ${company.address ? `<div class="company-meta">${escapeHtml(company.address)}</div>` : ""}
+      </div>
+    ` : "";
     win.document.write(`<!doctype html><html><head><title>Relatório — ${escapeHtml(report.name)}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+        .company { border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 14px; }
+        .company-name { font-size: 16px; font-weight: 700; }
+        .company-meta { font-size: 11px; color: #444; margin-top: 2px; display: flex; gap: 14px; flex-wrap: wrap; }
         h1 { font-size: 18px; margin: 0 0 4px; }
         .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -311,13 +328,15 @@ function ReportPreviewDialog({
         th { background: #f4f4f4; }
         tr:nth-child(even) td { background: #fafafa; }
       </style></head><body>
+      ${companyHeader}
       <h1>Relatório — ${escapeHtml(report.name)}</h1>
-      <div class="meta">Gerado em ${new Date().toLocaleString("pt-BR")} • ${tableRows.length} registros</div>
+      <div class="meta">${escapeHtml(periodo)} • Gerado em ${new Date().toLocaleString("pt-BR")} • ${tableRows.length} registros</div>
       <table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>
       <script>window.onload = () => { window.print(); };<\/script>
       </body></html>`);
     win.document.close();
   };
+
 
   const exportCsv = () => {
     if (!report) return;
