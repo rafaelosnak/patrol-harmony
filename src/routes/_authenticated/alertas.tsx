@@ -20,7 +20,7 @@ function AlertsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["alerts"],
-    queryFn: async () => (await supabase.from("alerts").select("*, profiles!alerts_user_id_fkey(full_name)").order("created_at", { ascending: false }).limit(100)).data ?? [],
+    queryFn: async () => (await supabase.from("alerts").select("*, profiles(full_name)").order("created_at", { ascending: false }).limit(100)).data ?? [],
     refetchInterval: 10000,
   });
 
