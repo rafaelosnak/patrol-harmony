@@ -40,22 +40,22 @@ function UnitsPage() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const payload = {
+        name: form.name, client_id: form.client_id || null,
+        address: form.address || null, phone: form.phone || null,
+      };
       if (editing) {
-        const { error } = await supabase.from("units").update({
-          name: form.name, client_id: form.client_id || null, address: form.address || null,
-        }).eq("id", editing.id);
+        const { error } = await supabase.from("units").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("units").insert({
-          name: form.name, client_id: form.client_id || null, address: form.address || null,
-        });
+        const { error } = await supabase.from("units").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       toast.success(editing ? "Unidade atualizada" : "Unidade cadastrada");
       qc.invalidateQueries({ queryKey: ["units"] });
-      setOpen(false); setEditing(null); setForm({ name: "", client_id: "", address: "" });
+      setOpen(false); setEditing(null); setForm({ name: "", client_id: "", address: "", phone: "" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -66,8 +66,8 @@ function UnitsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ name: "", client_id: "", address: "" }); setOpen(true); };
-  const openEdit = (u: Unit) => { setEditing(u); setForm({ name: u.name, client_id: u.client_id ?? "", address: u.address ?? "" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ name: "", client_id: "", address: "", phone: "" }); setOpen(true); };
+  const openEdit = (u: Unit) => { setEditing(u); setForm({ name: u.name, client_id: u.client_id ?? "", address: u.address ?? "", phone: u.phone ?? "" }); setOpen(true); };
 
   return (
     <div className="space-y-4">
