@@ -96,6 +96,60 @@ export type Database = {
           },
         ]
       }
+      checkpoint_locations: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkpoint_locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkpoint_locations_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           contact: string | null
@@ -251,38 +305,51 @@ export type Database = {
       round_checkpoints: {
         Row: {
           accuracy: number | null
+          checkpoint_location_id: string | null
           created_at: string
           id: string
           label: string | null
           lat: number | null
           lng: number | null
           notes: string | null
+          photo_url: string | null
           round_id: string
           user_id: string
         }
         Insert: {
           accuracy?: number | null
+          checkpoint_location_id?: string | null
           created_at?: string
           id?: string
           label?: string | null
           lat?: number | null
           lng?: number | null
           notes?: string | null
+          photo_url?: string | null
           round_id: string
           user_id: string
         }
         Update: {
           accuracy?: number | null
+          checkpoint_location_id?: string | null
           created_at?: string
           id?: string
           label?: string | null
           lat?: number | null
           lng?: number | null
           notes?: string | null
+          photo_url?: string | null
           round_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "round_checkpoints_location_fk"
+            columns: ["checkpoint_location_id"]
+            isOneToOne: false
+            referencedRelation: "checkpoint_locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "round_checkpoints_round_id_fkey"
             columns: ["round_id"]
