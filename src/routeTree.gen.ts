@@ -13,7 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedViaturasRouteImport } from './routes/_authenticated/viaturas'
-import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticated/unidades'
+import { Route as AuthenticatedSuperAdminRouteImport } from './routes/_authenticated/super-admin'
 import { Route as AuthenticatedRondasRouteImport } from './routes/_authenticated/rondas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
@@ -48,9 +48,9 @@ const AuthenticatedViaturasRoute = AuthenticatedViaturasRouteImport.update({
   path: '/viaturas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedUnidadesRoute = AuthenticatedUnidadesRouteImport.update({
-  id: '/unidades',
-  path: '/unidades',
+const AuthenticatedSuperAdminRoute = AuthenticatedSuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRondasRoute = AuthenticatedRondasRouteImport.update({
@@ -145,7 +145,7 @@ export interface FileRoutesByFullPath {
   '/ponto': typeof AuthenticatedPontoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
-  '/unidades': typeof AuthenticatedUnidadesRoute
+  '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRoutesByTo {
@@ -165,7 +165,7 @@ export interface FileRoutesByTo {
   '/ponto': typeof AuthenticatedPontoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
-  '/unidades': typeof AuthenticatedUnidadesRoute
+  '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRoutesById {
@@ -187,7 +187,7 @@ export interface FileRoutesById {
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/rondas': typeof AuthenticatedRondasRoute
-  '/_authenticated/unidades': typeof AuthenticatedUnidadesRoute
+  '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRoute
   '/_authenticated/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRouteTypes {
@@ -209,7 +209,7 @@ export interface FileRouteTypes {
     | '/ponto'
     | '/relatorios'
     | '/rondas'
-    | '/unidades'
+    | '/super-admin'
     | '/viaturas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -229,7 +229,7 @@ export interface FileRouteTypes {
     | '/ponto'
     | '/relatorios'
     | '/rondas'
-    | '/unidades'
+    | '/super-admin'
     | '/viaturas'
   id:
     | '__root__'
@@ -250,7 +250,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ponto'
     | '/_authenticated/relatorios'
     | '/_authenticated/rondas'
-    | '/_authenticated/unidades'
+    | '/_authenticated/super-admin'
     | '/_authenticated/viaturas'
   fileRoutesById: FileRoutesById
 }
@@ -290,11 +290,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedViaturasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/unidades': {
-      id: '/_authenticated/unidades'
-      path: '/unidades'
-      fullPath: '/unidades'
-      preLoaderRoute: typeof AuthenticatedUnidadesRouteImport
+    '/_authenticated/super-admin': {
+      id: '/_authenticated/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof AuthenticatedSuperAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rondas': {
@@ -413,7 +413,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRondasRoute: typeof AuthenticatedRondasRoute
-  AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRoute
+  AuthenticatedSuperAdminRoute: typeof AuthenticatedSuperAdminRoute
   AuthenticatedViaturasRoute: typeof AuthenticatedViaturasRoute
 }
 
@@ -432,7 +432,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRondasRoute: AuthenticatedRondasRoute,
-  AuthenticatedUnidadesRoute: AuthenticatedUnidadesRoute,
+  AuthenticatedSuperAdminRoute: AuthenticatedSuperAdminRoute,
   AuthenticatedViaturasRoute: AuthenticatedViaturasRoute,
 }
 

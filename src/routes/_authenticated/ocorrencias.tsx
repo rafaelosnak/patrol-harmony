@@ -26,7 +26,7 @@ const SEVS = ["low", "medium", "high", "critical"] as const;
 
 function OccPage() {
   const { t } = useI18n();
-  const { user, hasRole, isStaff } = useAuth();
+  const { user, hasRole, isStaff, companyId } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", type: "operational", severity: "medium" });
@@ -42,7 +42,7 @@ function OccPage() {
       if (!user) throw new Error("Não autenticado");
       const { error } = await supabase.from("occurrences").insert({
         user_id: user.id, title: form.title, description: form.description,
-        type: form.type, severity: form.severity,
+        type: form.type, severity: form.severity, company_id: companyId!,
       });
       if (error) throw error;
     },
