@@ -31,6 +31,7 @@ export function AppSidebar() {
         { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
         { title: t("nav.alerts"), url: "/alertas", icon: Siren },
         { title: "Ponto", url: "/ponto", icon: Clock },
+        { title: "Chat interno", url: "/chat", icon: MessageCircle },
       ],
     },
     ...(isStaff ? [{
