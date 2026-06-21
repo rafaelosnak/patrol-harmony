@@ -40,6 +40,7 @@ function fmtDate(iso: string) {
 function PontoPage() {
   const { user, isStaff } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [punching, setPunching] = useState<PunchType | null>(null);
   const [now, setNow] = useState(new Date());
@@ -51,10 +52,18 @@ function PontoPage() {
 
   const load = async () => {
     setLoading(true);
-    let query = supabase.from("time_entries").select("*").order("punched_at", { ascending: false }).limit(100);
+    let query = supabase.from("time_entries").select("*").order("punched_at", { ascending: false }).limit(200);
     if (!isStaff && user) query = query.eq("user_id", user.id);
     const { data } = await query;
-    setEntries((data ?? []) as Entry[]);
+    const list = (data ?? []) as Entry[];
+    setEntries(list);
+    const ids = Array.from(new Set(list.map((e) => e.user_id)));
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", ids);
+      const map: Record<string, string> = {};
+      (profs ?? []).forEach((p) => { map[p.id] = p.full_name; });
+      setNames(map);
+    }
     setLoading(false);
   };
 
@@ -161,6 +170,7 @@ function PontoPage() {
                 <tr>
                   <th className="text-left p-3">Data</th>
                   <th className="text-left p-3">Hora</th>
+                  <th className="text-left p-3">Funcionário</th>
                   <th className="text-left p-3">Tipo</th>
                   <th className="text-left p-3">Local</th>
                 </tr>
@@ -168,13 +178,24 @@ function PontoPage() {
               <tbody>
                 {entries.map((e) => {
                   const s = STEPS.find((x) => x.type === e.punch_type)!;
+                  const who = names[e.user_id] ?? (e.user_id === user?.id ? "Você" : "—");
                   return (
                     <tr key={e.id} className="border-t border-border/40">
                       <td className="p-3">{fmtDate(e.punched_at)}</td>
                       <td className="p-3 font-mono">{fmtTime(e.punched_at)}</td>
+                      <td className="p-3 font-medium">{who}</td>
                       <td className="p-3"><Badge variant="outline" className={s.color}>{s.label}</Badge></td>
                       <td className="p-3 text-xs text-muted-foreground">
-                        {e.latitude != null ? `${e.latitude.toFixed(4)}, ${e.longitude!.toFixed(4)}` : "—"}
+                        {e.latitude != null ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${e.latitude},${e.longitude}`}
+                            target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <MapPin className="h-3 w-3" />
+                            {e.latitude.toFixed(4)}, {e.longitude!.toFixed(4)}
+                          </a>
+                        ) : "—"}
                       </td>
                     </tr>
                   );
