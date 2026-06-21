@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 
 type Row = Record<string, unknown>;
 type ColDef = { label: string; render: (r: Row, ctx: Ctx) => string };
-type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string> };
+type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string>; checkpoints: Record<string, string[]> };
 
 type ReportKey = "rondas" | "ocorrencias" | "alertas" | "escalas" | "viaturas" | "presenca";
 
