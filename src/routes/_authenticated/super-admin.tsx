@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Crown, Plus, Pencil, CheckCircle2, AlertCircle, Ban, UserPlus, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, Pill } from "@/components/pg/ui";
@@ -313,7 +313,7 @@ function CompanyCard({
   c, statusPill, onEdit, onAddAdmin, onPay, onSuspend, onActivate, onOverdue, fetchAdmins,
 }: {
   c: Company;
-  statusPill: (s: Status) => JSX.Element;
+  statusPill: (s: Status) => React.ReactNode;
   onEdit: () => void;
   onAddAdmin: () => void;
   onPay: () => void;
