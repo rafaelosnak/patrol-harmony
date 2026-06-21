@@ -74,6 +74,8 @@ function RoundsPage() {
   const qc = useQueryClient();
   const [openRound, setOpenRound] = useState<RoundRow | null>(null);
   const [openLocations, setOpenLocations] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const [startVehicleId, setStartVehicleId] = useState<string>("");
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
   const { data: rounds, isLoading } = useQuery({
@@ -81,7 +83,7 @@ function RoundsPage() {
     queryFn: async (): Promise<RoundRow[]> => {
       const { data, error } = await supabase
         .from("rounds")
-        .select("id,user_id,unit_id,started_at,finished_at,status,checkpoints_done,checkpoints_total")
+        .select("id,user_id,unit_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total")
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -102,11 +104,22 @@ function RoundsPage() {
     },
   });
 
+  const { data: vehicles } = useQuery({
+    queryKey: ["vehicles-active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicles").select("id,plate,model").order("plate");
+      return (data ?? []) as { id: string; plate: string; model: string | null }[];
+    },
+  });
+  const vehicleMap: Record<string, string> = {};
+  (vehicles ?? []).forEach((v) => { vehicleMap[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
   const start = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
       const { data, error } = await supabase.from("rounds").insert({
         user_id: user.id, checkpoints_total: 6, checkpoints_done: 0,
+        vehicle_id: startVehicleId || null,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
@@ -114,6 +127,8 @@ function RoundsPage() {
     onSuccess: (row) => {
       toast.success("Ronda iniciada");
       qc.invalidateQueries({ queryKey: ["rounds"] });
+      setStartOpen(false);
+      setStartVehicleId("");
       setOpenRound(row);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao iniciar ronda"),
@@ -143,7 +158,7 @@ function RoundsPage() {
               <MapPin className="h-4 w-4" /> Pontos cadastrados
             </Button>
           )}
-          <Button onClick={() => start.mutate()} disabled={start.isPending}>
+          <Button onClick={() => setStartOpen(true)}>
             <Play className="h-4 w-4" /> {t("rounds.new")}
           </Button>
         </div>
@@ -155,15 +170,16 @@ function RoundsPage() {
             <tr>
               <th className="text-left px-4 py-3">{t("common.name")}</th>
               <th className="text-left px-4 py-3">{t("common.start")}</th>
+              <th className="text-left px-4 py-3">Viatura</th>
               <th className="text-left px-4 py-3">{t("rounds.checkpoints")}</th>
               <th className="text-left px-4 py-3">{t("common.status")}</th>
               <th className="text-right px-4 py-3">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {isLoading && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
             {!isLoading && (rounds ?? []).length === 0 && (
-              <tr><td colSpan={5}><EmptyState icon={Footprints} title={t("common.empty")} /></td></tr>
+              <tr><td colSpan={6}><EmptyState icon={Footprints} title={t("common.empty")} /></td></tr>
             )}
             {(rounds ?? []).map((r) => {
               const inProg = r.status === "in_progress";
@@ -171,6 +187,7 @@ function RoundsPage() {
                 <tr key={r.id} className="hover:bg-accent/30">
                   <td className="px-4 py-3 font-medium">{names?.[r.user_id] ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(r.started_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-xs">{r.vehicle_id ? (vehicleMap[r.vehicle_id] ?? "—") : <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-4 py-3 font-mono text-xs">{r.checkpoints_done}/{r.checkpoints_total}</td>
                   <td className="px-4 py-3">
                     <Pill tone={inProg ? "warn" : r.status === "completed" ? "success" : "default"}>
@@ -194,10 +211,40 @@ function RoundsPage() {
         </table>
       </div>
 
+      <Dialog open={startOpen} onOpenChange={setStartOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Iniciar nova ronda</DialogTitle>
+            <DialogDescription>Selecione a viatura que você usará nesta ronda.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Select value={startVehicleId} onValueChange={setStartVehicleId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Viatura (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {(vehicles ?? []).map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    <span className="inline-flex items-center gap-2"><Truck className="h-3 w-3" /> {v.plate}{v.model ? ` — ${v.model}` : ""}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStartOpen(false)}>Cancelar</Button>
+            <Button onClick={() => start.mutate()} disabled={start.isPending}>
+              <Play className="h-4 w-4" /> Iniciar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <CheckpointsDialog
         round={openRound}
         onClose={() => setOpenRound(null)}
         currentUserId={user?.id}
+        canEditLabel={isStaff}
       />
 
       <LocationsDialog open={openLocations} onClose={() => setOpenLocations(false)} canEdit={isStaff} />
