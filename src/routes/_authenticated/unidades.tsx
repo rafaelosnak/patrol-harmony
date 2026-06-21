@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/unidades")({
   component: UnitsPage,
 });
 
-type Unit = { id: string; name: string; client_id: string | null; address: string | null };
+type Unit = { id: string; name: string; client_id: string | null; address: string | null; phone: string | null };
 
 function UnitsPage() {
   const { t } = useI18n();
