@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/equipes")({
   component: TeamsPage,
 });
 
-type AppRole = "admin" | "supervisor" | "vigia";
+type AppRole = "admin" | "supervisor" | "vigia" | "central";
 type Member = { id: string; full_name: string; email: string | null; status: string; created_at: string; roles: AppRole[] };
 
 function TeamsPage() {
