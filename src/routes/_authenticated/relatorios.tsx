@@ -375,6 +375,19 @@ function ReportPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {company && (
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs">
+            <div className="font-semibold text-sm">{company.name}</div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-1">
+              {company.cnpj && <span><strong className="text-foreground">CNPJ:</strong> {company.cnpj}</span>}
+              {company.contact_phone && <span><strong className="text-foreground">Tel:</strong> {company.contact_phone}</span>}
+              {company.contact_email && <span><strong className="text-foreground">E-mail:</strong> {company.contact_email}</span>}
+            </div>
+            {company.address && <div className="text-muted-foreground mt-0.5">{company.address}</div>}
+          </div>
+        )}
+
+
         {(report?.needsProfiles || report?.key === "presenca") && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
             {report?.needsProfiles && (
