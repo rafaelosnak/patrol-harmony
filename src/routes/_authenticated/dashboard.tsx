@@ -28,7 +28,7 @@ function Dashboard() {
     queryFn: async () => {
       const [profiles, rounds, occ, alerts] = await Promise.all([
         supabase.from("profiles").select("id,status,full_name,created_at").limit(200),
-        supabase.from("rounds").select("id,status,started_at").gte("started_at", new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from("rounds").select("id,user_id,vehicle_id,status,started_at,finished_at,checkpoints_done,checkpoints_total").gte("started_at", new Date(Date.now() - 7 * 86400000).toISOString()).order("started_at", { ascending: false }),
         supabase.from("occurrences").select("id,status,severity,title,created_at").order("created_at", { ascending: false }).limit(50),
         supabase.from("alerts").select("id,status,alert_type,created_at").eq("status", "active"),
       ]);
@@ -41,6 +41,9 @@ function Dashboard() {
     },
     refetchInterval: 15000,
   });
+
+  const profileMap: Record<string, string> = {};
+  (data?.profiles ?? []).forEach((p) => { profileMap[p.id] = p.full_name ?? "—"; });
 
   const team = data?.profiles ?? [];
   const activeRounds = (data?.rounds ?? []).filter((r) => r.status === "in_progress").length;
