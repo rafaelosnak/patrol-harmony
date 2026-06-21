@@ -235,10 +235,33 @@ function ReportPreviewDialog({
     },
   });
 
+  const filteredRows = useMemo(() => {
+    if (!report || !data) return [] as Row[];
+    const dateField =
+      report.key === "presenca" ? "punched_at"
+      : report.key === "rondas" ? "started_at"
+      : report.key === "ocorrencias" || report.key === "alertas" ? "created_at"
+      : report.key === "escalas" ? "start_at"
+      : null;
+    const fromTs = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
+    const toTs = toDate ? new Date(toDate + "T23:59:59").getTime() : null;
+    return data.rows.filter((row) => {
+      if (report.needsProfiles && employeeFilter !== "__all__" && row.user_id !== employeeFilter) return false;
+      if (dateField && (fromTs || toTs)) {
+        const v = row[dateField];
+        if (!v) return false;
+        const t = new Date(v as string).getTime();
+        if (fromTs && t < fromTs) return false;
+        if (toTs && t > toTs) return false;
+      }
+      return true;
+    });
+  }, [report, data, employeeFilter, fromDate, toDate]);
+
   const tableRows = useMemo(() => {
-    if (!report || !data) return [] as string[][];
-    return data.rows.map((row) => report.cols.map((c) => c.render(row, data.ctx)));
-  }, [report, data]);
+    if (!report) return [] as string[][];
+    return filteredRows.map((row) => report.cols.map((c) => c.render(row, data!.ctx)));
+  }, [report, data, filteredRows]);
 
   const printReport = () => {
     if (!report) return;
