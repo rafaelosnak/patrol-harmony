@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send, Pencil, X } from "lucide-react";
+import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send, Pencil, X, Bell, BellOff, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -9,12 +9,34 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/alertas")({
   head: () => ({ meta: [{ title: "Alertas — PhytonGuard" }] }),
   component: AlertsPage,
 });
+
+function playSiren() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.25;
+    gain.connect(ctx.destination);
+    for (let i = 0; i < 3; i++) {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      const t0 = now + i * 0.6;
+      o.frequency.setValueAtTime(880, t0);
+      o.frequency.exponentialRampToValueAtTime(440, t0 + 0.5);
+      o.connect(gain);
+      o.start(t0);
+      o.stop(t0 + 0.5);
+    }
+    setTimeout(() => ctx.close().catch(() => {}), 2200);
+  } catch {/* ignore */}
+}
 
 type AlertTypeInfo = {
   key: string;
