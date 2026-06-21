@@ -474,14 +474,26 @@ function CheckpointItem({ idx, c, canEdit, roundId }: { idx: number; c: Checkpoi
       </div>
       {c.notes && <p className="text-muted-foreground text-xs mt-1">{c.notes}</p>}
       {c.lat != null && c.lng != null ? (
-        <a
-          href={`https://www.google.com/maps?q=${c.lat},${c.lng}`}
-          target="_blank" rel="noreferrer"
-          className="text-xs text-primary inline-flex items-center gap-1 mt-1"
-        >
-          <MapPin className="h-3 w-3" /> {c.lat.toFixed(5)}, {c.lng.toFixed(5)}
-          {c.accuracy != null && ` (±${Math.round(c.accuracy)}m)`}
-        </a>
+        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+          <a
+            href={`https://www.google.com/maps?q=${c.lat},${c.lng}`}
+            target="_blank" rel="noreferrer"
+            className="text-primary inline-flex items-center gap-1 hover:underline"
+          >
+            <MapPin className="h-3 w-3" /> Google Maps
+          </a>
+          <a
+            href={`https://www.waze.com/ul?ll=${c.lat},${c.lng}&navigate=yes`}
+            target="_blank" rel="noreferrer"
+            className="text-primary inline-flex items-center gap-1 hover:underline"
+          >
+            <MapPin className="h-3 w-3" /> Waze
+          </a>
+          <span className="text-muted-foreground">
+            {c.lat.toFixed(5)}, {c.lng.toFixed(5)}
+            {c.accuracy != null && ` (±${Math.round(c.accuracy)}m)`}
+          </span>
+        </div>
       ) : (
         <span className="text-xs text-muted-foreground">Sem localização</span>
       )}
