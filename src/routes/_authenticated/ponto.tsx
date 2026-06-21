@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X } from "lucide-react";
+import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X, Navigation, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -132,9 +132,14 @@ function PontoPage() {
                   <>
                     <p className="text-2xl font-mono font-bold">{fmtTime(entry.punched_at)}</p>
                     {entry.latitude != null && (
-                      <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {entry.latitude.toFixed(4)}, {entry.longitude!.toFixed(4)}
-                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px]">
+                        <a href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <MapPin className="h-3 w-3" /> Maps
+                        </a>
+                        <a href={`https://www.waze.com/ul?ll=${entry.latitude},${entry.longitude}&navigate=yes`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <Navigation className="h-3 w-3" /> Waze
+                        </a>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -249,14 +254,22 @@ function EntryRow({
       <td className="p-3"><Badge variant="outline" className={step.color}>{step.label}</Badge></td>
       <td className="p-3 text-xs text-muted-foreground">
         {entry.latitude != null ? (
-          <a
-            href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
-            target="_blank" rel="noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
-          >
-            <MapPin className="h-3 w-3" />
-            {entry.latitude.toFixed(4)}, {entry.longitude!.toFixed(4)}
-          </a>
+          <div className="inline-flex items-center gap-2">
+            <a
+              href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
+              target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" /> Maps
+            </a>
+            <a
+              href={`https://www.waze.com/ul?ll=${entry.latitude},${entry.longitude}&navigate=yes`}
+              target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <Navigation className="h-3 w-3" /> Waze
+            </a>
+          </div>
         ) : "—"}
       </td>
       {canEdit && (
