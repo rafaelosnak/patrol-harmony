@@ -116,8 +116,8 @@ export const deleteEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { user_id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Apenas administradores podem remover funcionários");
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores ou supervisores podem remover funcionários");
     if (data.user_id === context.userId) throw new Error("Você não pode remover a si mesmo");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
