@@ -110,7 +110,7 @@ function ReportsPage() {
     queryFn: async () => {
       const out: Record<string, number> = {};
       await Promise.all(REPORTS.map(async (r) => {
-        const { count } = await supabase.from(r.table).select("id", { count: "exact", head: true });
+        const { count } = await (supabase as unknown as { from: (t: string) => { select: (s: string, o: object) => Promise<{ count: number | null }> } }).from(r.table).select("id", { count: "exact", head: true });
         out[r.key] = count ?? 0;
       }));
       return out;
@@ -154,7 +154,16 @@ function ReportPreviewDialog({
     queryKey: ["report-data", report?.key],
     enabled: !!report,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            order: (c: string, o: { ascending: boolean }) => {
+              limit: (n: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
+            };
+          };
+        };
+      };
+      const { data, error } = await client
         .from(report!.table)
         .select(report!.select)
         .order(report!.orderBy, { ascending: false })
