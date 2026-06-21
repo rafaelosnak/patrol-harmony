@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Footprints, MapPin, Play, Plus, Square, Trash2 } from "lucide-react";
+import { Camera, Footprints, MapPin, Pencil, Play, Plus, Square, Trash2, Truck } from "lucide-react";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
@@ -25,6 +25,7 @@ type RoundRow = {
   id: string;
   user_id: string;
   unit_id: string | null;
+  vehicle_id: string | null;
   started_at: string;
   finished_at: string | null;
   status: string;
@@ -73,6 +74,8 @@ function RoundsPage() {
   const qc = useQueryClient();
   const [openRound, setOpenRound] = useState<RoundRow | null>(null);
   const [openLocations, setOpenLocations] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const [startVehicleId, setStartVehicleId] = useState<string>("");
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
   const { data: rounds, isLoading } = useQuery({
@@ -80,7 +83,7 @@ function RoundsPage() {
     queryFn: async (): Promise<RoundRow[]> => {
       const { data, error } = await supabase
         .from("rounds")
-        .select("id,user_id,unit_id,started_at,finished_at,status,checkpoints_done,checkpoints_total")
+        .select("id,user_id,unit_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total")
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -101,11 +104,22 @@ function RoundsPage() {
     },
   });
 
+  const { data: vehicles } = useQuery({
+    queryKey: ["vehicles-active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicles").select("id,plate,model").order("plate");
+      return (data ?? []) as { id: string; plate: string; model: string | null }[];
+    },
+  });
+  const vehicleMap: Record<string, string> = {};
+  (vehicles ?? []).forEach((v) => { vehicleMap[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
   const start = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
       const { data, error } = await supabase.from("rounds").insert({
         user_id: user.id, checkpoints_total: 6, checkpoints_done: 0,
+        vehicle_id: startVehicleId || null,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
@@ -113,6 +127,8 @@ function RoundsPage() {
     onSuccess: (row) => {
       toast.success("Ronda iniciada");
       qc.invalidateQueries({ queryKey: ["rounds"] });
+      setStartOpen(false);
+      setStartVehicleId("");
       setOpenRound(row);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao iniciar ronda"),
@@ -142,7 +158,7 @@ function RoundsPage() {
               <MapPin className="h-4 w-4" /> Pontos cadastrados
             </Button>
           )}
-          <Button onClick={() => start.mutate()} disabled={start.isPending}>
+          <Button onClick={() => setStartOpen(true)}>
             <Play className="h-4 w-4" /> {t("rounds.new")}
           </Button>
         </div>
@@ -154,15 +170,16 @@ function RoundsPage() {
             <tr>
               <th className="text-left px-4 py-3">{t("common.name")}</th>
               <th className="text-left px-4 py-3">{t("common.start")}</th>
+              <th className="text-left px-4 py-3">Viatura</th>
               <th className="text-left px-4 py-3">{t("rounds.checkpoints")}</th>
               <th className="text-left px-4 py-3">{t("common.status")}</th>
               <th className="text-right px-4 py-3">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {isLoading && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
             {!isLoading && (rounds ?? []).length === 0 && (
-              <tr><td colSpan={5}><EmptyState icon={Footprints} title={t("common.empty")} /></td></tr>
+              <tr><td colSpan={6}><EmptyState icon={Footprints} title={t("common.empty")} /></td></tr>
             )}
             {(rounds ?? []).map((r) => {
               const inProg = r.status === "in_progress";
@@ -170,6 +187,7 @@ function RoundsPage() {
                 <tr key={r.id} className="hover:bg-accent/30">
                   <td className="px-4 py-3 font-medium">{names?.[r.user_id] ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(r.started_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-xs">{r.vehicle_id ? (vehicleMap[r.vehicle_id] ?? "—") : <span className="text-muted-foreground">—</span>}</td>
                   <td className="px-4 py-3 font-mono text-xs">{r.checkpoints_done}/{r.checkpoints_total}</td>
                   <td className="px-4 py-3">
                     <Pill tone={inProg ? "warn" : r.status === "completed" ? "success" : "default"}>
@@ -193,10 +211,40 @@ function RoundsPage() {
         </table>
       </div>
 
+      <Dialog open={startOpen} onOpenChange={setStartOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Iniciar nova ronda</DialogTitle>
+            <DialogDescription>Selecione a viatura que você usará nesta ronda.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Select value={startVehicleId} onValueChange={setStartVehicleId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Viatura (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {(vehicles ?? []).map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    <span className="inline-flex items-center gap-2"><Truck className="h-3 w-3" /> {v.plate}{v.model ? ` — ${v.model}` : ""}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStartOpen(false)}>Cancelar</Button>
+            <Button onClick={() => start.mutate()} disabled={start.isPending}>
+              <Play className="h-4 w-4" /> Iniciar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <CheckpointsDialog
         round={openRound}
         onClose={() => setOpenRound(null)}
         currentUserId={user?.id}
+        canEditLabel={isStaff}
       />
 
       <LocationsDialog open={openLocations} onClose={() => setOpenLocations(false)} canEdit={isStaff} />
@@ -205,8 +253,8 @@ function RoundsPage() {
 }
 
 function CheckpointsDialog({
-  round, onClose, currentUserId,
-}: { round: RoundRow | null; onClose: () => void; currentUserId?: string }) {
+  round, onClose, currentUserId, canEditLabel,
+}: { round: RoundRow | null; onClose: () => void; currentUserId?: string; canEditLabel?: boolean }) {
   const qc = useQueryClient();
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
@@ -335,7 +383,7 @@ function CheckpointsDialog({
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum ponto registrado ainda.</p>
           )}
           {(checkpoints ?? []).map((c, i) => (
-            <CheckpointItem key={c.id} idx={i} c={c} />
+            <CheckpointItem key={c.id} idx={i} c={c} canEdit={!!canEditLabel} roundId={round?.id} />
           ))}
         </div>
 
@@ -347,7 +395,11 @@ function CheckpointsDialog({
   );
 }
 
-function CheckpointItem({ idx, c }: { idx: number; c: Checkpoint }) {
+function CheckpointItem({ idx, c, canEdit, roundId }: { idx: number; c: Checkpoint; canEdit?: boolean; roundId?: string }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(c.label ?? "");
+
   const { data: photoUrl } = useQuery({
     queryKey: ["round-photo", c.photo_url],
     enabled: !!c.photo_url,
@@ -357,11 +409,44 @@ function CheckpointItem({ idx, c }: { idx: number; c: Checkpoint }) {
     },
   });
 
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("round_checkpoints")
+        .update({ label: draft.trim() || null })
+        .eq("id", c.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ponto atualizado");
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["round-checkpoints", roundId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
   return (
     <div className="rounded-lg border border-border/60 p-3 text-sm">
-      <div className="flex items-center justify-between">
-        <span className="font-medium">#{idx + 1} {c.label ?? "Ponto"}</span>
-        <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleTimeString()}</span>
+      <div className="flex items-center justify-between gap-2">
+        {editing ? (
+          <div className="flex-1 flex gap-1">
+            <Input value={draft} onChange={(e) => setDraft(e.target.value)} className="h-7 text-sm" />
+            <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>Salvar</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setDraft(c.label ?? ""); }}>×</Button>
+          </div>
+        ) : (
+          <>
+            <span className="font-medium">#{idx + 1} {c.label ?? "Ponto"}</span>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <button onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground">
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+              <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleTimeString()}</span>
+            </div>
+          </>
+        )}
       </div>
       {c.notes && <p className="text-muted-foreground text-xs mt-1">{c.notes}</p>}
       {c.lat != null && c.lng != null ? (

@@ -370,6 +370,7 @@ export type Database = {
           status: string
           unit_id: string | null
           user_id: string
+          vehicle_id: string | null
         }
         Insert: {
           checkpoints_done?: number
@@ -381,6 +382,7 @@ export type Database = {
           status?: string
           unit_id?: string | null
           user_id: string
+          vehicle_id?: string | null
         }
         Update: {
           checkpoints_done?: number
@@ -392,6 +394,7 @@ export type Database = {
           status?: string
           unit_id?: string | null
           user_id?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -399,6 +402,13 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rounds_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]

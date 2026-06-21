@@ -10,6 +10,7 @@ import {
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -17,6 +18,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const { t } = useI18n();
+  const { isStaff } = useAuth();
 
   const groups: { label: string; items: { title: string; url: string; icon: typeof Map }[] }[] = [
     {
@@ -31,7 +33,7 @@ export function AppSidebar() {
         { title: "Ponto", url: "/ponto", icon: Clock },
       ],
     },
-    {
+    ...(isStaff ? [{
       label: t("nav.group.management"),
       items: [
         { title: "Funcionários", url: "/funcionarios", icon: UserCog },
@@ -41,11 +43,11 @@ export function AppSidebar() {
         { title: t("nav.clients"), url: "/clientes", icon: Building2 },
         { title: t("nav.units"), url: "/unidades", icon: MapPin },
       ],
-    },
+    }] : []),
     {
       label: t("nav.group.system"),
       items: [
-        { title: t("nav.reports"), url: "/relatorios", icon: BarChart3 },
+        ...(isStaff ? [{ title: t("nav.reports"), url: "/relatorios", icon: BarChart3 }] : []),
         { title: t("nav.settings"), url: "/configuracoes", icon: Settings },
       ],
     },
