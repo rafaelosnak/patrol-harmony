@@ -121,9 +121,11 @@ function RoundsPage() {
   const start = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
+      const total = Math.max(1, Math.min(50, Number(startTotal) || 6));
       const { data, error } = await supabase.from("rounds").insert({
-        user_id: user.id, checkpoints_total: 6, checkpoints_done: 0,
+        user_id: user.id, checkpoints_total: total, checkpoints_done: 0,
         vehicle_id: startVehicleId || null,
+        notes: startTrajeto.trim() || null,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
@@ -132,7 +134,7 @@ function RoundsPage() {
       toast.success("Ronda iniciada");
       qc.invalidateQueries({ queryKey: ["rounds"] });
       setStartOpen(false);
-      setStartVehicleId("");
+      setStartVehicleId(""); setStartTotal(6); setStartTrajeto("");
       setOpenRound(row);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao iniciar ronda"),
