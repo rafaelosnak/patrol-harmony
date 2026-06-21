@@ -3,9 +3,26 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type AppRole = "admin" | "coordenador" | "supervisor" | "central" | "vigia";
 
+export interface EmployeeProfileInput {
+  full_name: string;
+  phone?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  birth_date?: string | null;
+  hired_at?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_district?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_zip?: string | null;
+  notes?: string | null;
+}
+
 export const createEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string; password: string; full_name: string; phone?: string; role: AppRole }) => {
+  .inputValidator((input: { email: string; password: string; role: AppRole } & EmployeeProfileInput) => {
     if (!input.email || !input.password || !input.full_name || !input.role) {
       throw new Error("Campos obrigatórios faltando");
     }
@@ -27,15 +44,59 @@ export const createEmployee = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const uid = created.user!.id;
 
-    // Profile is auto-created by trigger with default 'vigia' role; reset to desired role
     await supabaseAdmin.from("user_roles").delete().eq("user_id", uid);
     const { error: roleErr } = await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: data.role });
     if (roleErr) throw new Error(roleErr.message);
 
-    if (data.phone) {
-      await supabaseAdmin.from("profiles").update({ phone: data.phone }).eq("id", uid);
-    }
+    const profileUpdate = {
+      phone: data.phone ?? null,
+      cpf: data.cpf ?? null,
+      rg: data.rg ?? null,
+      birth_date: data.birth_date || null,
+      hired_at: data.hired_at || null,
+      address_street: data.address_street ?? null,
+      address_number: data.address_number ?? null,
+      address_complement: data.address_complement ?? null,
+      address_district: data.address_district ?? null,
+      address_city: data.address_city ?? null,
+      address_state: data.address_state ?? null,
+      address_zip: data.address_zip ?? null,
+      notes: data.notes ?? null,
+    };
+    await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", uid);
     return { id: uid };
+  });
+
+export const updateEmployee = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { user_id: string } & EmployeeProfileInput) => {
+    if (!input.user_id || !input.full_name) throw new Error("Dados incompletos");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: ok } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: ok2 } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
+    if (!ok && !ok2) throw new Error("Sem permissão");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { user_id, ...rest } = data;
+    const { error } = await supabaseAdmin.from("profiles").update({
+      full_name: rest.full_name,
+      phone: rest.phone ?? null,
+      cpf: rest.cpf ?? null,
+      rg: rest.rg ?? null,
+      birth_date: rest.birth_date || null,
+      hired_at: rest.hired_at || null,
+      address_street: rest.address_street ?? null,
+      address_number: rest.address_number ?? null,
+      address_complement: rest.address_complement ?? null,
+      address_district: rest.address_district ?? null,
+      address_city: rest.address_city ?? null,
+      address_state: rest.address_state ?? null,
+      address_zip: rest.address_zip ?? null,
+      notes: rest.notes ?? null,
+    }).eq("id", user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const updateEmployeeRole = createServerFn({ method: "POST" })

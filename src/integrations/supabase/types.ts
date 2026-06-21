@@ -170,34 +170,70 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_district: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
           avatar_url: string | null
+          birth_date: string | null
+          cpf: string | null
           created_at: string
           email: string | null
           full_name: string
+          hired_at: string | null
           id: string
+          notes: string | null
           phone: string | null
+          rg: string | null
           status: string
           unit_id: string | null
           updated_at: string
         }
         Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
+          hired_at?: string | null
           id: string
+          notes?: string | null
           phone?: string | null
+          rg?: string | null
           status?: string
           unit_id?: string | null
           updated_at?: string
         }
         Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           avatar_url?: string | null
+          birth_date?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
+          hired_at?: string | null
           id?: string
+          notes?: string | null
           phone?: string | null
+          rg?: string | null
           status?: string
           unit_id?: string | null
           updated_at?: string
