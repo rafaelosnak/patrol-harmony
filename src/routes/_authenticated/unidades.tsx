@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { MapPin, Plus } from "lucide-react";
+import { MapPin, Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader } from "@/components/pg/ui";
@@ -20,12 +20,16 @@ export const Route = createFileRoute("/_authenticated/unidades")({
   component: UnitsPage,
 });
 
+type Unit = { id: string; name: string; client_id: string | null; address: string | null };
+
 function UnitsPage() {
   const { t } = useI18n();
   const { hasRole } = useAuth();
   const canWrite = hasRole("admin") || hasRole("supervisor");
+  const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Unit | null>(null);
   const [form, setForm] = useState({ name: "", client_id: "", address: "" });
 
   const { data, isLoading } = useQuery({
@@ -34,25 +38,45 @@ function UnitsPage() {
   });
   const { data: clients } = useQuery({ queryKey: ["clients-min"], queryFn: async () => (await supabase.from("clients").select("id,name")).data ?? [] });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("units").insert({
-        name: form.name, client_id: form.client_id || null, address: form.address || null,
-      });
-      if (error) throw error;
+      if (editing) {
+        const { error } = await supabase.from("units").update({
+          name: form.name, client_id: form.client_id || null, address: form.address || null,
+        }).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("units").insert({
+          name: form.name, client_id: form.client_id || null, address: form.address || null,
+        });
+        if (error) throw error;
+      }
     },
-    onSuccess: () => { toast.success("Unidade cadastrada"); qc.invalidateQueries({ queryKey: ["units"] }); setOpen(false); setForm({ name: "", client_id: "", address: "" }); },
+    onSuccess: () => {
+      toast.success(editing ? "Unidade atualizada" : "Unidade cadastrada");
+      qc.invalidateQueries({ queryKey: ["units"] });
+      setOpen(false); setEditing(null); setForm({ name: "", client_id: "", address: "" });
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("units").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { toast.success("Unidade removida"); qc.invalidateQueries({ queryKey: ["units"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const openNew = () => { setEditing(null); setForm({ name: "", client_id: "", address: "" }); setOpen(true); };
+  const openEdit = (u: Unit) => { setEditing(u); setForm({ name: u.name, client_id: u.client_id ?? "", address: u.address ?? "" }); setOpen(true); };
 
   return (
     <div className="space-y-4">
       <PageHeader title={t("units.title")} subtitle={t("units.subtitle")} actions={
         canWrite && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4" />{t("units.new")}</Button></DialogTrigger>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild><Button onClick={openNew}><Plus className="h-4 w-4" />{t("units.new")}</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>{t("units.new")}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editing ? "Editar unidade" : t("units.new")}</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div><Label>{t("common.name")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={120} /></div>
                 <div>
@@ -65,8 +89,8 @@ function UnitsPage() {
                 <div><Label>{t("common.address")}</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} maxLength={200} /></div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-                <Button onClick={() => create.mutate()} disabled={!form.name || create.isPending}>{t("common.create")}</Button>
+                <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>{t("common.cancel")}</Button>
+                <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editing ? "Salvar" : t("common.create")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -87,6 +111,12 @@ function UnitsPage() {
                   <div className="text-xs text-muted-foreground truncate">{client?.name ?? "—"}</div>
                   <div className="text-xs text-muted-foreground mt-1 truncate">{u.address ?? "—"}</div>
                 </div>
+                {canWrite && (
+                  <div className="flex flex-col gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(u as Unit)}><Pencil className="h-3 w-3" /></Button>
+                    {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir unidade?")) del.mutate(u.id); }}><Trash2 className="h-3 w-3" /></Button>}
+                  </div>
+                )}
               </div>
             </div>
           );
