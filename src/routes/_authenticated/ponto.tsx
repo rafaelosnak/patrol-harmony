@@ -132,9 +132,14 @@ function PontoPage() {
                   <>
                     <p className="text-2xl font-mono font-bold">{fmtTime(entry.punched_at)}</p>
                     {entry.latitude != null && (
-                      <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {entry.latitude.toFixed(4)}, {entry.longitude!.toFixed(4)}
-                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px]">
+                        <a href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <MapPin className="h-3 w-3" /> Maps
+                        </a>
+                        <a href={`https://www.waze.com/ul?ll=${entry.latitude},${entry.longitude}&navigate=yes`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+                          <Navigation className="h-3 w-3" /> Waze
+                        </a>
+                      </div>
                     )}
                   </>
                 ) : (
