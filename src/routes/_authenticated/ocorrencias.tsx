@@ -26,10 +26,11 @@ const SEVS = ["low", "medium", "high", "critical"] as const;
 
 function OccPage() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, hasRole, isStaff } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", type: "operational", severity: "medium" });
+  const [editing, setEditing] = useState<null | { id: string; title: string; description: string; type: string; severity: string; status: string }>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["occurrences"],
@@ -49,6 +50,32 @@ function OccPage() {
       toast.success("Ocorrência registrada"); qc.invalidateQueries({ queryKey: ["occurrences"] });
       setOpen(false); setForm({ title: "", description: "", type: "operational", severity: "medium" });
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!editing) throw new Error("Nada para atualizar");
+      const { error } = await supabase.from("occurrences").update({
+        title: editing.title, description: editing.description,
+        type: editing.type, severity: editing.severity, status: editing.status,
+        closed_at: editing.status === "closed" ? new Date().toISOString() : null,
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ocorrência atualizada"); qc.invalidateQueries({ queryKey: ["occurrences"] });
+      setEditing(null);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("occurrences").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Ocorrência excluída"); qc.invalidateQueries({ queryKey: ["occurrences"] }); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
