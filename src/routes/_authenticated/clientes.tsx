@@ -60,12 +60,21 @@ function ClientsPage() {
         contact: form.contact || null,
         address: form.address || null,
       };
+      let clientId: string;
       if (editing) {
         const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
         if (error) throw error;
+        clientId = editing.id;
       } else {
-        const { error } = await supabase.from("clients").insert({ ...payload, company_id: companyId! });
+        const { data, error } = await supabase.from("clients").insert({ ...payload, company_id: companyId! }).select("id").single();
         if (error) throw error;
+        clientId = (data as { id: string }).id;
+      }
+      // Geocode in background if address provided/changed
+      if (form.address && (!editing || editing.address !== form.address)) {
+        geocodeFn({ data: { clientId } })
+          .then((r) => { if (r.ok) toast.success("Endereço localizado no mapa"); })
+          .catch(() => toast.error("Não foi possível localizar o endereço"));
       }
     },
     onSuccess: () => {
