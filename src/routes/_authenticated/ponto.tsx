@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X } from "lucide-react";
+import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X, Navigation, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
