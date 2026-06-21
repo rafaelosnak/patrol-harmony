@@ -13,6 +13,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -31,6 +33,7 @@ type RoundRow = {
   status: string;
   checkpoints_done: number;
   checkpoints_total: number;
+  notes: string | null;
 };
 
 type Checkpoint = {
@@ -76,6 +79,8 @@ function RoundsPage() {
   const [openLocations, setOpenLocations] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [startVehicleId, setStartVehicleId] = useState<string>("");
+  const [startTotal, setStartTotal] = useState<number>(6);
+  const [startTrajeto, setStartTrajeto] = useState<string>("");
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
   const { data: rounds, isLoading } = useQuery({
@@ -83,7 +88,7 @@ function RoundsPage() {
     queryFn: async (): Promise<RoundRow[]> => {
       const { data, error } = await supabase
         .from("rounds")
-        .select("id,user_id,unit_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total")
+        .select("id,user_id,unit_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes")
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -117,9 +122,11 @@ function RoundsPage() {
   const start = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
+      const total = Math.max(1, Math.min(50, Number(startTotal) || 6));
       const { data, error } = await supabase.from("rounds").insert({
-        user_id: user.id, checkpoints_total: 6, checkpoints_done: 0,
+        user_id: user.id, checkpoints_total: total, checkpoints_done: 0,
         vehicle_id: startVehicleId || null,
+        notes: startTrajeto.trim() || null,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
@@ -128,7 +135,7 @@ function RoundsPage() {
       toast.success("Ronda iniciada");
       qc.invalidateQueries({ queryKey: ["rounds"] });
       setStartOpen(false);
-      setStartVehicleId("");
+      setStartVehicleId(""); setStartTotal(6); setStartTrajeto("");
       setOpenRound(row);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao iniciar ronda"),
@@ -239,25 +246,46 @@ function RoundsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Iniciar nova ronda</DialogTitle>
-            <DialogDescription>Selecione a viatura que você usará nesta ronda.</DialogDescription>
+            <DialogDescription>Defina pontos, trajeto e viatura desta ronda.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Select value={startVehicleId} onValueChange={setStartVehicleId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Viatura (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {(vehicles ?? []).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    <span className="inline-flex items-center gap-2"><Truck className="h-3 w-3" /> {v.plate}{v.model ? ` — ${v.model}` : ""}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <div>
+              <Label>Quantidade de pontos</Label>
+              <Input
+                type="number" min={1} max={50}
+                value={startTotal}
+                onChange={(e) => setStartTotal(parseInt(e.target.value || "0", 10))}
+              />
+            </div>
+            <div>
+              <Label>Trajeto da ronda</Label>
+              <Textarea
+                rows={3}
+                placeholder="Ex.: Portaria → Bloco A → Estacionamento → Bloco B → Garagem → Portaria"
+                value={startTrajeto}
+                onChange={(e) => setStartTrajeto(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+            <div>
+              <Label>Viatura (opcional)</Label>
+              <Select value={startVehicleId} onValueChange={setStartVehicleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma viatura" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(vehicles ?? []).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      <span className="inline-flex items-center gap-2"><Truck className="h-3 w-3" /> {v.plate}{v.model ? ` — ${v.model}` : ""}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStartOpen(false)}>Cancelar</Button>
-            <Button onClick={() => start.mutate()} disabled={start.isPending}>
+            <Button onClick={() => start.mutate()} disabled={start.isPending || !startTotal}>
               <Play className="h-4 w-4" /> Iniciar
             </Button>
           </DialogFooter>
@@ -362,6 +390,12 @@ function CheckpointsDialog({
             {round && `Iniciada ${new Date(round.started_at).toLocaleString()} • ${round.checkpoints_done}/${round.checkpoints_total}`}
           </DialogDescription>
         </DialogHeader>
+        {round?.notes && (
+          <div className="rounded-lg border border-border/60 bg-card/40 p-3 text-xs">
+            <div className="uppercase text-[10px] text-muted-foreground mb-1">Trajeto da ronda</div>
+            <div className="whitespace-pre-wrap">{round.notes}</div>
+          </div>
+        )}
 
         {canRegister && (
           <div className="space-y-2 rounded-lg border border-border/60 p-3">

@@ -13,6 +13,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({ meta: [{ title: "Chat interno — PhytonGuard" }] }),
   component: ChatPage,
+  errorComponent: ({ error }) => (
+    <div className="p-6 text-sm">
+      <h2 className="font-semibold mb-2">Não foi possível abrir o chat</h2>
+      <pre className="text-xs whitespace-pre-wrap text-muted-foreground">{error?.message ?? String(error)}</pre>
+    </div>
+  ),
+  notFoundComponent: () => <div className="p-6 text-sm">Página não encontrada.</div>,
 });
 
 type Message = {
