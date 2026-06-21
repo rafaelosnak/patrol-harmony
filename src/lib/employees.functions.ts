@@ -103,8 +103,8 @@ export const updateEmployeeRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { user_id: string; role: AppRole }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Apenas administradores podem alterar papéis");
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores ou supervisores podem alterar papéis");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
