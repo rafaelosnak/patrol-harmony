@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Users, Footprints, AlertOctagon, Siren,
   CalendarClock, Truck, Megaphone, Building2, MapPin, BarChart3, Settings, ShieldAlert,
-  UserCog, Clock,
+  UserCog, Clock, MessageCircle,
 } from "lucide-react";
 
 import {
