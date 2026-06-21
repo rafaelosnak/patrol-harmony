@@ -59,6 +59,13 @@ export type Database = {
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "alerts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       announcements: {
