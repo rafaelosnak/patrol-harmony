@@ -200,3 +200,83 @@ function PontoPage() {
     </div>
   );
 }
+
+function EntryRow({
+  entry, step, who, canEdit, onSaved,
+}: {
+  entry: Entry;
+  step: typeof STEPS[number];
+  who: string;
+  canEdit: boolean;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const toLocal = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+  const [draft, setDraft] = useState(toLocal(entry.punched_at));
+
+  const save = async () => {
+    setSaving(true);
+    const iso = new Date(draft).toISOString();
+    const { error } = await supabase.from("time_entries").update({ punched_at: iso }).eq("id", entry.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Ponto ajustado");
+    setEditing(false);
+    onSaved();
+  };
+
+  return (
+    <tr className="border-t border-border/40">
+      <td className="p-3">{fmtDate(entry.punched_at)}</td>
+      <td className="p-3 font-mono">
+        {editing ? (
+          <Input
+            type="datetime-local"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="h-8 w-48"
+          />
+        ) : (
+          fmtTime(entry.punched_at)
+        )}
+      </td>
+      <td className="p-3 font-medium">{who}</td>
+      <td className="p-3"><Badge variant="outline" className={step.color}>{step.label}</Badge></td>
+      <td className="p-3 text-xs text-muted-foreground">
+        {entry.latitude != null ? (
+          <a
+            href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
+            target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            <MapPin className="h-3 w-3" />
+            {entry.latitude.toFixed(4)}, {entry.longitude!.toFixed(4)}
+          </a>
+        ) : "—"}
+      </td>
+      {canEdit && (
+        <td className="p-3 text-right">
+          {editing ? (
+            <div className="inline-flex gap-1">
+              <Button size="sm" variant="outline" onClick={save} disabled={saving}>
+                <Check className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setDraft(toLocal(entry.punched_at)); setEditing(false); }}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={() => setEditing(true)} title="Ajustar hora">
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+        </td>
+      )}
+    </tr>
+  );
+}
