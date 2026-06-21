@@ -55,8 +55,8 @@ const emptyProfile: EmployeeProfileInput = {
 
 function EmployeesPage() {
   const { hasRole, user } = useAuth();
-  const isAdmin = hasRole("admin");
-  const isStaff = isAdmin || hasRole("supervisor");
+  const isStaff = hasRole("admin") || hasRole("supervisor");
+  const isAdmin = isStaff; // admin e supervisor têm os mesmos privilégios
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
