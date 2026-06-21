@@ -55,6 +55,42 @@ function AlertsPage() {
   const [observation, setObservation] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [notifEnabled, setNotifEnabled] = useState<boolean>(
+    typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted",
+  );
+  const lastSeenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("alerts-listen")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "alerts" }, async (payload) => {
+        const row = payload.new as { id: string; alert_type: string; user_id: string; message: string | null };
+        if (lastSeenRef.current === row.id) return;
+        lastSeenRef.current = row.id;
+        playSiren();
+        let who = "Vigia";
+        try {
+          const { data: p } = await supabase.from("profiles").select("full_name").eq("id", row.user_id).maybeSingle();
+          if (p?.full_name) who = p.full_name;
+        } catch {/* ignore */}
+        const title = `🚨 Alerta: ${row.alert_type.toUpperCase()}`;
+        const body = `${who}${row.message ? ` — ${row.message}` : ""}`;
+        toast.error(title, { description: body, duration: 12000 });
+        if ("Notification" in window && Notification.permission === "granted") {
+          try { new Notification(title, { body, tag: row.id, requireInteraction: true }); } catch {/* ignore */}
+        }
+        qc.invalidateQueries({ queryKey: ["alerts"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
+  const requestNotif = async () => {
+    if (!("Notification" in window)) { toast.error("Notificações não suportadas neste navegador"); return; }
+    const perm = await Notification.requestPermission();
+    setNotifEnabled(perm === "granted");
+    if (perm === "granted") toast.success("Notificações ativadas");
+  };
 
   const alertTypes: AlertTypeInfo[] = [
     {
