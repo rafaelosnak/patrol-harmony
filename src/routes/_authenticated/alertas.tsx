@@ -163,7 +163,17 @@ function AlertsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t("alerts.title")} subtitle={t("alerts.subtitle")} />
+      <PageHeader title={t("alerts.title")} subtitle={t("alerts.subtitle")} actions={
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => playSiren()} title="Testar som">
+            <Volume2 className="h-4 w-4 mr-1" /> Testar som
+          </Button>
+          <Button size="sm" variant={notifEnabled ? "secondary" : "default"} onClick={requestNotif}>
+            {notifEnabled ? <Bell className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
+            {notifEnabled ? "Notificações ativas" : "Ativar notificações"}
+          </Button>
+        </div>
+      } />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {alertTypes.map((type) => (
