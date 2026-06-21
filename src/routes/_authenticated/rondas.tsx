@@ -390,6 +390,12 @@ function CheckpointsDialog({
             {round && `Iniciada ${new Date(round.started_at).toLocaleString()} • ${round.checkpoints_done}/${round.checkpoints_total}`}
           </DialogDescription>
         </DialogHeader>
+        {round?.notes && (
+          <div className="rounded-lg border border-border/60 bg-card/40 p-3 text-xs">
+            <div className="uppercase text-[10px] text-muted-foreground mb-1">Trajeto da ronda</div>
+            <div className="whitespace-pre-wrap">{round.notes}</div>
+          </div>
+        )}
 
         {canRegister && (
           <div className="space-y-2 rounded-lg border border-border/60 p-3">
