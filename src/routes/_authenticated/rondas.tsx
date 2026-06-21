@@ -615,7 +615,7 @@ function LocationsDialog({
     },
     onSuccess: () => {
       toast.success("Ponto cadastrado");
-      setName(""); setDescription(""); setUnitId("");
+      setName(""); setDescription(""); setClientId("");
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-all"] });
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-active"] });
     },
@@ -649,14 +649,14 @@ function LocationsDialog({
           <div className="space-y-2 rounded-lg border border-border/60 p-3">
             <Input placeholder="Nome do ponto (ex.: Praça em frente ao CDD)" value={name} onChange={(e) => setName(e.target.value)} />
             <Input placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
-            {units && units.length > 0 && (
-              <Select value={unitId} onValueChange={setUnitId}>
+            {clients && clients.length > 0 && (
+              <Select value={clientId} onValueChange={setClientId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Unidade (opcional)" />
+                  <SelectValue placeholder="Cliente (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {units.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
