@@ -198,10 +198,24 @@ function ReportPreviewDialog({
         vehicleIds.length ? supabase.from("vehicles").select("id,plate,model").in("id", vehicleIds) : Promise.resolve({ data: [] as { id: string; plate: string; model: string | null }[] }),
       ]);
 
-      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {} };
+      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {}, checkpoints: {} };
       ((pp as { data: { id: string; full_name: string }[] | null }).data ?? []).forEach((p) => { ctx.profiles[p.id] = p.full_name ?? "—"; });
       ((uu as { data: { id: string; name: string }[] | null }).data ?? []).forEach((u) => { ctx.units[u.id] = u.name ?? "—"; });
       ((vv as { data: { id: string; plate: string; model: string | null }[] | null }).data ?? []).forEach((v) => { ctx.vehicles[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
+      if (r.key === "rondas" && rows.length > 0) {
+        const ids = rows.map((x) => x.id as string).filter(Boolean);
+        const { data: cps } = await supabase
+          .from("round_checkpoints")
+          .select("round_id,label,created_at")
+          .in("round_id", ids)
+          .order("created_at", { ascending: true });
+        (cps ?? []).forEach((c) => {
+          const rid = c.round_id as string;
+          const arr = ctx.checkpoints[rid] ?? (ctx.checkpoints[rid] = []);
+          arr.push((c.label as string | null) ?? "Ponto");
+        });
+      }
 
       return { rows, ctx };
     },
