@@ -25,6 +25,7 @@ type RoundRow = {
   id: string;
   user_id: string;
   unit_id: string | null;
+  vehicle_id: string | null;
   started_at: string;
   finished_at: string | null;
   status: string;
