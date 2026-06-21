@@ -395,7 +395,11 @@ function CheckpointsDialog({
   );
 }
 
-function CheckpointItem({ idx, c }: { idx: number; c: Checkpoint }) {
+function CheckpointItem({ idx, c, canEdit, roundId }: { idx: number; c: Checkpoint; canEdit?: boolean; roundId?: string }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(c.label ?? "");
+
   const { data: photoUrl } = useQuery({
     queryKey: ["round-photo", c.photo_url],
     enabled: !!c.photo_url,
@@ -405,11 +409,44 @@ function CheckpointItem({ idx, c }: { idx: number; c: Checkpoint }) {
     },
   });
 
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("round_checkpoints")
+        .update({ label: draft.trim() || null })
+        .eq("id", c.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ponto atualizado");
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["round-checkpoints", roundId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
   return (
     <div className="rounded-lg border border-border/60 p-3 text-sm">
-      <div className="flex items-center justify-between">
-        <span className="font-medium">#{idx + 1} {c.label ?? "Ponto"}</span>
-        <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleTimeString()}</span>
+      <div className="flex items-center justify-between gap-2">
+        {editing ? (
+          <div className="flex-1 flex gap-1">
+            <Input value={draft} onChange={(e) => setDraft(e.target.value)} className="h-7 text-sm" />
+            <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>Salvar</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setDraft(c.label ?? ""); }}>×</Button>
+          </div>
+        ) : (
+          <>
+            <span className="font-medium">#{idx + 1} {c.label ?? "Ponto"}</span>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <button onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground">
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+              <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleTimeString()}</span>
+            </div>
+          </>
+        )}
       </div>
       {c.notes && <p className="text-muted-foreground text-xs mt-1">{c.notes}</p>}
       {c.lat != null && c.lng != null ? (
