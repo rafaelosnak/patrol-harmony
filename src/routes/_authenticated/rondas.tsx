@@ -245,25 +245,46 @@ function RoundsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Iniciar nova ronda</DialogTitle>
-            <DialogDescription>Selecione a viatura que você usará nesta ronda.</DialogDescription>
+            <DialogDescription>Defina pontos, trajeto e viatura desta ronda.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Select value={startVehicleId} onValueChange={setStartVehicleId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Viatura (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {(vehicles ?? []).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    <span className="inline-flex items-center gap-2"><Truck className="h-3 w-3" /> {v.plate}{v.model ? ` — ${v.model}` : ""}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <div>
+              <Label>Quantidade de pontos</Label>
+              <Input
+                type="number" min={1} max={50}
+                value={startTotal}
+                onChange={(e) => setStartTotal(parseInt(e.target.value || "0", 10))}
+              />
+            </div>
+            <div>
+              <Label>Trajeto da ronda</Label>
+              <Textarea
+                rows={3}
+                placeholder="Ex.: Portaria → Bloco A → Estacionamento → Bloco B → Garagem → Portaria"
+                value={startTrajeto}
+                onChange={(e) => setStartTrajeto(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+            <div>
+              <Label>Viatura (opcional)</Label>
+              <Select value={startVehicleId} onValueChange={setStartVehicleId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma viatura" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(vehicles ?? []).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      <span className="inline-flex items-center gap-2"><Truck className="h-3 w-3" /> {v.plate}{v.model ? ` — ${v.model}` : ""}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStartOpen(false)}>Cancelar</Button>
-            <Button onClick={() => start.mutate()} disabled={start.isPending}>
+            <Button onClick={() => start.mutate()} disabled={start.isPending || !startTotal}>
               <Play className="h-4 w-4" /> Iniciar
             </Button>
           </DialogFooter>
