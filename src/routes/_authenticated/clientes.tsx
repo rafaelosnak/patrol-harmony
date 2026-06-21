@@ -92,10 +92,10 @@ function ClientsPage() {
     <div className="space-y-4">
       <PageHeader title={t("clients.title")} subtitle={t("clients.subtitle")} actions={
         canWrite && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4" />{t("clients.new")}</Button></DialogTrigger>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild><Button onClick={openNew}><Plus className="h-4 w-4" />{t("clients.new")}</Button></DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>{t("clients.new")}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editing ? "Editar cliente" : t("clients.new")}</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div><Label>{t("common.name")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={120} /></div>
                 <div className="grid grid-cols-2 gap-3">
