@@ -186,9 +186,23 @@ function ReportsPage() {
 function ReportPreviewDialog({
   report, onClose,
 }: { report: ReportDef | null; onClose: () => void }) {
+  const { companyId } = useAuth();
   const [employeeFilter, setEmployeeFilter] = useState<string>("__all__");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+
+  const { data: company } = useQuery({
+    queryKey: ["report-company", companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<Company | null> => {
+      const { data } = await supabase
+        .from("companies")
+        .select("name,cnpj,contact_email,contact_phone,address")
+        .eq("id", companyId!)
+        .maybeSingle();
+      return (data as Company) ?? null;
+    },
+  });
 
   const { data: employees } = useQuery({
     queryKey: ["report-employees"],
