@@ -30,7 +30,7 @@ function UnitsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
-  const [form, setForm] = useState({ name: "", client_id: "", address: "" });
+  const [form, setForm] = useState({ name: "", client_id: "", address: "", phone: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["units"],
