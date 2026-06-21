@@ -45,6 +45,20 @@ function Dashboard() {
     refetchInterval: 15000,
   });
 
+  // Monthly schedule (current month) — visible for all logged-in users
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+  const monthEnd = new Date(monthStart); monthEnd.setMonth(monthEnd.getMonth() + 1);
+  const { data: monthShifts } = useQuery({
+    queryKey: ["dashboard-month-shifts", monthStart.toISOString()],
+    queryFn: async () => (await supabase
+      .from("shifts")
+      .select("id,user_id,unit_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), units(name)")
+      .gte("start_at", monthStart.toISOString())
+      .lt("start_at", monthEnd.toISOString())
+      .order("start_at", { ascending: true })
+    ).data ?? [],
+  });
+
   const profileMap: Record<string, string> = {};
   (data?.profiles ?? []).forEach((p) => { profileMap[p.id] = p.full_name ?? "—"; });
 
