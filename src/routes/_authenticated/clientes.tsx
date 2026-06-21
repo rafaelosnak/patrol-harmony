@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 function ClientsPage() {
   const { t } = useI18n();
   const { hasRole } = useAuth();
-  const canWrite = hasRole("admin") || hasRole("coordenador");
+  const canWrite = hasRole("admin") || hasRole("supervisor");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", document: "", contact: "" });
