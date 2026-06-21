@@ -285,6 +285,11 @@ function EmployeesPage() {
           <DialogHeader><DialogTitle>Editar funcionário — {editing?.full_name}</DialogTitle></DialogHeader>
           <form onSubmit={onSaveEdit} className="space-y-4">
             <ProfileFields value={editForm} onChange={(v) => setEditForm({ ...editForm, ...v })} />
+            <ClientPicker
+              clients={clients}
+              value={editForm.client_ids}
+              onChange={(ids) => setEditForm({ ...editForm, client_ids: ids })}
+            />
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
               <Button type="submit" disabled={submitting}>
@@ -297,6 +302,32 @@ function EmployeesPage() {
 
       {/* Documents dialog */}
       <DocumentsDialog row={docsFor} onClose={() => setDocsFor(null)} canManage={isStaff} />
+    </div>
+  );
+}
+
+function ClientPicker({ clients, value, onChange }: { clients: { id: string; name: string }[]; value: string[]; onChange: (ids: string[]) => void }) {
+  const toggle = (id: string) => {
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  };
+  return (
+    <div className="pt-2 border-t border-border/60">
+      <div className="text-xs font-semibold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+        <Building2 className="h-3 w-3" /> Clientes atendidos por este funcionário
+      </div>
+      {clients.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum cliente cadastrado ainda.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto rounded-md border border-border/60 p-2">
+          {clients.map((c) => (
+            <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/40 rounded px-2 py-1">
+              <Checkbox checked={value.includes(c.id)} onCheckedChange={() => toggle(c.id)} />
+              <span className="truncate">{c.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground mt-1">Esses vínculos aparecem nos relatórios para identificar qual cliente foi atendido.</p>
     </div>
   );
 }
