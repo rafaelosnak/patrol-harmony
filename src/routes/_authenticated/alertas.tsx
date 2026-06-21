@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send } from "lucide-react";
+import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send, Pencil, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -26,11 +26,13 @@ type AlertTypeInfo = {
 
 function AlertsPage() {
   const { t } = useI18n();
-  const { user, isStaff } = useAuth();
+  const { user } = useAuth();
   const qc = useQueryClient();
 
   const [openDialog, setOpenDialog] = useState<string | null>(null);
   const [observation, setObservation] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
 
   const alertTypes: AlertTypeInfo[] = [
     {
@@ -83,6 +85,20 @@ function AlertsPage() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Alerta resolvido"); qc.invalidateQueries({ queryKey: ["alerts"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const saveMessage = useMutation({
+    mutationFn: async ({ id, message }: { id: string; message: string | null }) => {
+      const { error } = await supabase.from("alerts").update({ message }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Observação atualizada");
+      qc.invalidateQueries({ queryKey: ["alerts"] });
+      setEditingId(null);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
   const activeType = alertTypes.find((a) => a.key === openDialog);
@@ -155,11 +171,31 @@ function AlertsPage() {
             {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={6}><EmptyState icon={HeartPulse} title={t("common.empty")} /></td></tr>}
             {(data ?? []).map((a) => {
               const profile = (a as unknown as { profiles?: { full_name?: string } }).profiles;
+              const isEditing = editingId === a.id;
               return (
                 <tr key={a.id} className="hover:bg-accent/30">
                   <td className="px-4 py-3 font-medium capitalize">{a.alert_type}</td>
                   <td className="px-4 py-3 text-muted-foreground">{profile?.full_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{a.message ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground max-w-xs">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1">
+                        <Textarea value={editDraft} onChange={(e) => setEditDraft(e.target.value)} rows={2} className="min-w-[180px]" />
+                        <Button size="sm" variant="outline" onClick={() => saveMessage.mutate({ id: a.id, message: editDraft.trim() || null })}>
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{a.message ?? "—"}</span>
+                        <button onClick={() => { setEditingId(a.id); setEditDraft(a.message ?? ""); }} className="opacity-60 hover:opacity-100" title="Editar observação">
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <Pill tone={a.status === "active" ? "danger" : a.status === "acknowledged" ? "warn" : "success"}>
                       {a.status === "active" ? t("alerts.active") : a.status === "resolved" ? t("alerts.resolved") : a.status}
@@ -167,7 +203,7 @@ function AlertsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(a.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right">
-                    {a.status === "active" && isStaff && (
+                    {a.status === "active" && (
                       <Button size="sm" variant="outline" onClick={() => resolve.mutate(a.id)}>
                         <Check className="h-3 w-3" /> {t("alerts.resolve")}
                       </Button>
