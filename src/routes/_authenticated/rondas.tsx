@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Footprints, MapPin, Play, Square } from "lucide-react";
-import { useState } from "react";
+import { Camera, Footprints, MapPin, Play, Plus, Square, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -38,7 +41,19 @@ type Checkpoint = {
   lng: number | null;
   accuracy: number | null;
   notes: string | null;
+  photo_url: string | null;
+  checkpoint_location_id: string | null;
   created_at: string;
+};
+
+type CheckpointLocation = {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_id: string | null;
+  lat: number | null;
+  lng: number | null;
+  active: boolean;
 };
 
 function getPosition(): Promise<GeolocationPosition | null> {
@@ -54,9 +69,11 @@ function getPosition(): Promise<GeolocationPosition | null> {
 
 function RoundsPage() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const qc = useQueryClient();
   const [openRound, setOpenRound] = useState<RoundRow | null>(null);
+  const [openLocations, setOpenLocations] = useState(false);
+  const isStaff = hasRole("admin") || hasRole("supervisor");
 
   const { data: rounds, isLoading } = useQuery({
     queryKey: ["rounds"],
@@ -119,9 +136,16 @@ function RoundsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t("rounds.title")} subtitle={t("rounds.subtitle")} actions={
-        <Button onClick={() => start.mutate()} disabled={start.isPending}>
-          <Play className="h-4 w-4" /> {t("rounds.new")}
-        </Button>
+        <div className="flex gap-2">
+          {isStaff && (
+            <Button variant="outline" onClick={() => setOpenLocations(true)}>
+              <MapPin className="h-4 w-4" /> Pontos cadastrados
+            </Button>
+          )}
+          <Button onClick={() => start.mutate()} disabled={start.isPending}>
+            <Play className="h-4 w-4" /> {t("rounds.new")}
+          </Button>
+        </div>
       } />
 
       <div className="glass rounded-xl overflow-hidden">
@@ -174,6 +198,8 @@ function RoundsPage() {
         onClose={() => setOpenRound(null)}
         currentUserId={user?.id}
       />
+
+      <LocationsDialog open={openLocations} onClose={() => setOpenLocations(false)} canEdit={isStaff} />
     </div>
   );
 }
@@ -184,6 +210,19 @@ function CheckpointsDialog({
   const qc = useQueryClient();
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
+  const [locationId, setLocationId] = useState<string>("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const { data: locations } = useQuery({
+    queryKey: ["checkpoint-locations-active"],
+    queryFn: async (): Promise<CheckpointLocation[]> => {
+      const { data, error } = await supabase
+        .from("checkpoint_locations").select("*").eq("active", true).order("name");
+      if (error) throw error;
+      return (data ?? []) as CheckpointLocation[];
+    },
+  });
 
   const { data: checkpoints, isLoading } = useQuery({
     queryKey: ["round-checkpoints", round?.id],
@@ -203,21 +242,37 @@ function CheckpointsDialog({
     mutationFn: async () => {
       if (!round || !currentUserId) throw new Error("Sem ronda ou usuário");
       const pos = await getPosition();
+
+      let photo_url: string | null = null;
+      if (photoFile) {
+        const ext = photoFile.name.split(".").pop() || "jpg";
+        const path = `${currentUserId}/${round.id}/${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("round-photos").upload(path, photoFile, {
+          contentType: photoFile.type, upsert: false,
+        });
+        if (up.error) throw up.error;
+        photo_url = path;
+      }
+
+      const chosen = locations?.find((l) => l.id === locationId);
       const { error } = await supabase.from("round_checkpoints").insert({
         round_id: round.id,
         user_id: currentUserId,
-        label: label.trim() || null,
+        label: chosen?.name ?? (label.trim() || null),
         notes: notes.trim() || null,
-        lat: pos?.coords.latitude ?? null,
-        lng: pos?.coords.longitude ?? null,
+        lat: pos?.coords.latitude ?? chosen?.lat ?? null,
+        lng: pos?.coords.longitude ?? chosen?.lng ?? null,
         accuracy: pos?.coords.accuracy ?? null,
+        photo_url,
+        checkpoint_location_id: locationId || null,
       });
       if (error) throw error;
       return pos !== null;
     },
     onSuccess: (hadGps) => {
-      toast.success(hadGps ? "Ponto registrado com localização" : "Ponto registrado (sem GPS)");
-      setLabel(""); setNotes("");
+      toast.success(hadGps ? "Ponto registrado com localização" : "Ponto registrado");
+      setLabel(""); setNotes(""); setLocationId(""); setPhotoFile(null);
+      if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["round-checkpoints", round?.id] });
       qc.invalidateQueries({ queryKey: ["rounds"] });
     },
@@ -238,8 +293,36 @@ function CheckpointsDialog({
 
         {canRegister && (
           <div className="space-y-2 rounded-lg border border-border/60 p-3">
-            <Input placeholder="Identificação do ponto (ex.: Portão A)" value={label} onChange={(e) => setLabel(e.target.value)} />
+            {locations && locations.length > 0 && (
+              <Select value={locationId} onValueChange={setLocationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar ponto cadastrado (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!locationId && (
+              <Input placeholder="Identificação do ponto (ex.: Portão A)" value={label} onChange={(e) => setLabel(e.target.value)} />
+            )}
             <Input placeholder="Observação (opcional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <div className="flex items-center gap-2">
+              <Input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                className="flex-1"
+              />
+              <Camera className="h-4 w-4 text-muted-foreground" />
+            </div>
+            {photoFile && (
+              <p className="text-xs text-muted-foreground">📷 {photoFile.name}</p>
+            )}
             <Button className="w-full" onClick={() => register.mutate()} disabled={register.isPending}>
               <MapPin className="h-4 w-4" /> Registrar ponto agora
             </Button>
@@ -252,23 +335,177 @@ function CheckpointsDialog({
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum ponto registrado ainda.</p>
           )}
           {(checkpoints ?? []).map((c, i) => (
-            <div key={c.id} className="rounded-lg border border-border/60 p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">#{i + 1} {c.label ?? "Ponto"}</span>
-                <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleTimeString()}</span>
+            <CheckpointItem key={c.id} idx={i} c={c} />
+          ))}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CheckpointItem({ idx, c }: { idx: number; c: Checkpoint }) {
+  const { data: photoUrl } = useQuery({
+    queryKey: ["round-photo", c.photo_url],
+    enabled: !!c.photo_url,
+    queryFn: async () => {
+      const { data } = await supabase.storage.from("round-photos").createSignedUrl(c.photo_url!, 3600);
+      return data?.signedUrl ?? null;
+    },
+  });
+
+  return (
+    <div className="rounded-lg border border-border/60 p-3 text-sm">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">#{idx + 1} {c.label ?? "Ponto"}</span>
+        <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleTimeString()}</span>
+      </div>
+      {c.notes && <p className="text-muted-foreground text-xs mt-1">{c.notes}</p>}
+      {c.lat != null && c.lng != null ? (
+        <a
+          href={`https://www.google.com/maps?q=${c.lat},${c.lng}`}
+          target="_blank" rel="noreferrer"
+          className="text-xs text-primary inline-flex items-center gap-1 mt-1"
+        >
+          <MapPin className="h-3 w-3" /> {c.lat.toFixed(5)}, {c.lng.toFixed(5)}
+          {c.accuracy != null && ` (±${Math.round(c.accuracy)}m)`}
+        </a>
+      ) : (
+        <span className="text-xs text-muted-foreground">Sem localização</span>
+      )}
+      {photoUrl && (
+        <a href={photoUrl} target="_blank" rel="noreferrer" className="block mt-2">
+          <img src={photoUrl} alt="Foto do ponto" className="rounded-md max-h-40 object-cover border border-border/60" />
+        </a>
+      )}
+    </div>
+  );
+}
+
+function LocationsDialog({
+  open, onClose, canEdit,
+}: { open: boolean; onClose: () => void; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [unitId, setUnitId] = useState<string>("");
+
+  const { data: items, isLoading } = useQuery({
+    queryKey: ["checkpoint-locations-all"],
+    enabled: open,
+    queryFn: async (): Promise<CheckpointLocation[]> => {
+      const { data, error } = await supabase
+        .from("checkpoint_locations").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as CheckpointLocation[];
+    },
+  });
+
+  const { data: units } = useQuery({
+    queryKey: ["units-min"],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase.from("units").select("id,name").order("name");
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!name.trim()) throw new Error("Informe o nome do ponto");
+      const pos = await getPosition();
+      const { error } = await supabase.from("checkpoint_locations").insert({
+        name: name.trim(),
+        description: description.trim() || null,
+        unit_id: unitId || null,
+        lat: pos?.coords.latitude ?? null,
+        lng: pos?.coords.longitude ?? null,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ponto cadastrado");
+      setName(""); setDescription(""); setUnitId("");
+      qc.invalidateQueries({ queryKey: ["checkpoint-locations-all"] });
+      qc.invalidateQueries({ queryKey: ["checkpoint-locations-active"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("checkpoint_locations").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Removido");
+      qc.invalidateQueries({ queryKey: ["checkpoint-locations-all"] });
+      qc.invalidateQueries({ queryKey: ["checkpoint-locations-active"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Pontos de ronda cadastrados</DialogTitle>
+          <DialogDescription>
+            Locais pré-definidos (ex.: "Praça em frente ao CDD") que aparecem para o vigia escolher.
+          </DialogDescription>
+        </DialogHeader>
+
+        {canEdit && (
+          <div className="space-y-2 rounded-lg border border-border/60 p-3">
+            <Input placeholder="Nome do ponto (ex.: Praça em frente ao CDD)" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+            {units && units.length > 0 && (
+              <Select value={unitId} onValueChange={setUnitId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Unidade (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button className="w-full" onClick={() => create.mutate()} disabled={create.isPending}>
+              <Plus className="h-4 w-4" /> Adicionar ponto (usa GPS atual)
+            </Button>
+          </div>
+        )}
+
+        <div className="max-h-72 overflow-auto space-y-2">
+          {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+          {!isLoading && (items ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum ponto cadastrado.</p>
+          )}
+          {(items ?? []).map((l) => (
+            <div key={l.id} className="rounded-lg border border-border/60 p-3 text-sm flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="font-medium">{l.name}</p>
+                {l.description && <p className="text-xs text-muted-foreground">{l.description}</p>}
+                {l.lat != null && l.lng != null && (
+                  <a
+                    href={`https://www.google.com/maps?q=${l.lat},${l.lng}`}
+                    target="_blank" rel="noreferrer"
+                    className="text-xs text-primary inline-flex items-center gap-1 mt-1"
+                  >
+                    <MapPin className="h-3 w-3" /> {l.lat.toFixed(5)}, {l.lng.toFixed(5)}
+                  </a>
+                )}
               </div>
-              {c.notes && <p className="text-muted-foreground text-xs mt-1">{c.notes}</p>}
-              {c.lat != null && c.lng != null ? (
-                <a
-                  href={`https://www.google.com/maps?q=${c.lat},${c.lng}`}
-                  target="_blank" rel="noreferrer"
-                  className="text-xs text-primary inline-flex items-center gap-1 mt-1"
-                >
-                  <MapPin className="h-3 w-3" /> {c.lat.toFixed(5)}, {c.lng.toFixed(5)}
-                  {c.accuracy != null && ` (±${Math.round(c.accuracy)}m)`}
-                </a>
-              ) : (
-                <span className="text-xs text-muted-foreground">Sem localização</span>
+              {canEdit && (
+                <Button size="sm" variant="ghost" onClick={() => remove.mutate(l.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
             </div>
           ))}
