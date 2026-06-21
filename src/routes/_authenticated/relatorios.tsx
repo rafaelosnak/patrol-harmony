@@ -374,6 +374,10 @@ function ReportPreviewDialog({
           )}
         </div>
 
+        {report?.key === "rondas" && filteredRows.length > 0 && (
+          <RoundPhotosSection roundIds={filteredRows.map((r) => r.id as string)} ctx={data?.ctx} />
+        )}
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
           <Button variant="outline" onClick={exportCsv} disabled={!tableRows.length}>
