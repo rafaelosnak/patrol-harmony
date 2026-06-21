@@ -51,7 +51,8 @@ function MapPage() {
 
   const { data: team } = useQuery({
     queryKey: ["map-team"],
-    queryFn: async () => (await supabase.from("profiles").select("id,full_name,status").limit(50)).data ?? [],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name,status,last_lat,last_lng,last_location_at").limit(200)).data ?? [],
+    refetchInterval: 15000,
   });
   const { data: vehicles } = useQuery({
     queryKey: ["map-vehicles"],
@@ -59,7 +60,7 @@ function MapPage() {
   });
   const { data: clients } = useQuery({
     queryKey: ["map-clients"],
-    queryFn: async () => (await supabase.from("clients").select("id,name,address").limit(200)).data ?? [],
+    queryFn: async () => (await supabase.from("clients").select("id,name,address,latitude,longitude").limit(500)).data ?? [],
     refetchInterval: 30000,
   });
   const { data: alerts } = useQuery({
