@@ -47,6 +47,7 @@ const REPORTS: ReportDef[] = [
       { label: "Viatura", render: (r, c) => c.vehicles[r.vehicle_id as string] ?? "—" },
       { label: "Status", render: (r) => str(r.status) },
       { label: "Pontos", render: (r) => `${r.checkpoints_done ?? 0}/${r.checkpoints_total ?? 0}` },
+      { label: "Pontos visitados", render: (r, c) => (c.checkpoints[r.id as string] ?? []).join(" • ") || "—" },
     ],
   },
   {
