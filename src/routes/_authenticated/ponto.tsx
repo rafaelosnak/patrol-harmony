@@ -170,6 +170,7 @@ function PontoPage() {
                 <tr>
                   <th className="text-left p-3">Data</th>
                   <th className="text-left p-3">Hora</th>
+                  <th className="text-left p-3">Funcionário</th>
                   <th className="text-left p-3">Tipo</th>
                   <th className="text-left p-3">Local</th>
                 </tr>
@@ -177,13 +178,24 @@ function PontoPage() {
               <tbody>
                 {entries.map((e) => {
                   const s = STEPS.find((x) => x.type === e.punch_type)!;
+                  const who = names[e.user_id] ?? (e.user_id === user?.id ? "Você" : "—");
                   return (
                     <tr key={e.id} className="border-t border-border/40">
                       <td className="p-3">{fmtDate(e.punched_at)}</td>
                       <td className="p-3 font-mono">{fmtTime(e.punched_at)}</td>
+                      <td className="p-3 font-medium">{who}</td>
                       <td className="p-3"><Badge variant="outline" className={s.color}>{s.label}</Badge></td>
                       <td className="p-3 text-xs text-muted-foreground">
-                        {e.latitude != null ? `${e.latitude.toFixed(4)}, ${e.longitude!.toFixed(4)}` : "—"}
+                        {e.latitude != null ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${e.latitude},${e.longitude}`}
+                            target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <MapPin className="h-3 w-3" />
+                            {e.latitude.toFixed(4)}, {e.longitude!.toFixed(4)}
+                          </a>
+                        ) : "—"}
                       </td>
                     </tr>
                   );
