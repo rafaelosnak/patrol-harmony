@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/use-auth";
+
+type Company = { name: string; cnpj: string | null; contact_email: string | null; contact_phone: string | null; address: string | null };
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   head: () => ({ meta: [{ title: "Relatórios — PhytonGuard" }] }),
@@ -183,9 +186,23 @@ function ReportsPage() {
 function ReportPreviewDialog({
   report, onClose,
 }: { report: ReportDef | null; onClose: () => void }) {
+  const { companyId } = useAuth();
   const [employeeFilter, setEmployeeFilter] = useState<string>("__all__");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+
+  const { data: company } = useQuery({
+    queryKey: ["report-company", companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<Company | null> => {
+      const { data } = await supabase
+        .from("companies")
+        .select("name,cnpj,contact_email,contact_phone,address")
+        .eq("id", companyId!)
+        .maybeSingle();
+      return (data as Company) ?? null;
+    },
+  });
 
   const { data: employees } = useQuery({
     queryKey: ["report-employees"],
@@ -284,9 +301,26 @@ function ReportPreviewDialog({
     if (!win) return;
     const headers = report.cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
     const body = tableRows.map((r) => `<tr>${r.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+    const periodo = (fromDate || toDate)
+      ? `Período: ${fromDate ? new Date(fromDate + "T00:00:00").toLocaleDateString("pt-BR") : "início"} até ${toDate ? new Date(toDate + "T00:00:00").toLocaleDateString("pt-BR") : "hoje"}`
+      : "Período: todos os registros";
+    const companyHeader = company ? `
+      <div class="company">
+        <div class="company-name">${escapeHtml(company.name)}</div>
+        <div class="company-meta">
+          ${company.cnpj ? `<span><strong>CNPJ:</strong> ${escapeHtml(company.cnpj)}</span>` : ""}
+          ${company.contact_phone ? `<span><strong>Tel:</strong> ${escapeHtml(company.contact_phone)}</span>` : ""}
+          ${company.contact_email ? `<span><strong>E-mail:</strong> ${escapeHtml(company.contact_email)}</span>` : ""}
+        </div>
+        ${company.address ? `<div class="company-meta">${escapeHtml(company.address)}</div>` : ""}
+      </div>
+    ` : "";
     win.document.write(`<!doctype html><html><head><title>Relatório — ${escapeHtml(report.name)}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+        .company { border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 14px; }
+        .company-name { font-size: 16px; font-weight: 700; }
+        .company-meta { font-size: 11px; color: #444; margin-top: 2px; display: flex; gap: 14px; flex-wrap: wrap; }
         h1 { font-size: 18px; margin: 0 0 4px; }
         .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -294,22 +328,34 @@ function ReportPreviewDialog({
         th { background: #f4f4f4; }
         tr:nth-child(even) td { background: #fafafa; }
       </style></head><body>
+      ${companyHeader}
       <h1>Relatório — ${escapeHtml(report.name)}</h1>
-      <div class="meta">Gerado em ${new Date().toLocaleString("pt-BR")} • ${tableRows.length} registros</div>
+      <div class="meta">${escapeHtml(periodo)} • Gerado em ${new Date().toLocaleString("pt-BR")} • ${tableRows.length} registros</div>
       <table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>
       <script>window.onload = () => { window.print(); };<\/script>
       </body></html>`);
     win.document.close();
   };
 
+
   const exportCsv = () => {
     if (!report) return;
     const headers = report.cols.map((c) => c.label);
     const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const csv = [headers.map(escape).join(",")]
-      .concat(tableRows.map((r) => r.map(escape).join(",")))
-      .join("\n");
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const lines: string[] = [];
+    if (company) {
+      lines.push(`"Empresa","${(company.name ?? "").replace(/"/g, '""')}"`);
+      if (company.cnpj) lines.push(`"CNPJ","${company.cnpj.replace(/"/g, '""')}"`);
+      if (company.contact_email) lines.push(`"E-mail","${company.contact_email.replace(/"/g, '""')}"`);
+      if (company.contact_phone) lines.push(`"Telefone","${company.contact_phone.replace(/"/g, '""')}"`);
+      lines.push("");
+    }
+    lines.push(`"Relatório","${report.name}"`);
+    lines.push(`"Gerado em","${new Date().toLocaleString("pt-BR")}"`);
+    lines.push("");
+    lines.push(headers.map(escape).join(","));
+    tableRows.forEach((r) => lines.push(r.map(escape).join(",")));
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -317,6 +363,7 @@ function ReportPreviewDialog({
     a.click();
     URL.revokeObjectURL(url);
   };
+
 
   return (
     <Dialog open={!!report} onOpenChange={(o) => !o && onClose()}>
@@ -327,6 +374,19 @@ function ReportPreviewDialog({
             Visualização prévia. Você pode imprimir ou exportar para CSV (Excel).
           </DialogDescription>
         </DialogHeader>
+
+        {company && (
+          <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs">
+            <div className="font-semibold text-sm">{company.name}</div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-1">
+              {company.cnpj && <span><strong className="text-foreground">CNPJ:</strong> {company.cnpj}</span>}
+              {company.contact_phone && <span><strong className="text-foreground">Tel:</strong> {company.contact_phone}</span>}
+              {company.contact_email && <span><strong className="text-foreground">E-mail:</strong> {company.contact_email}</span>}
+            </div>
+            {company.address && <div className="text-muted-foreground mt-0.5">{company.address}</div>}
+          </div>
+        )}
+
 
         {(report?.needsProfiles || report?.key === "presenca") && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
