@@ -30,8 +30,8 @@ export const createEmployee = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Apenas administradores podem cadastrar funcionários");
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores ou supervisores podem cadastrar funcionários");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
