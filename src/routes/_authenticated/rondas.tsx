@@ -109,6 +109,25 @@ function RoundsPage() {
     },
   });
 
+  const roundIds = (rounds ?? []).map((r) => r.id);
+  const { data: roundLabels } = useQuery({
+    queryKey: ["round-labels", roundIds.join(",")],
+    enabled: roundIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("round_checkpoints")
+        .select("round_id,label,created_at")
+        .in("round_id", roundIds)
+        .order("created_at", { ascending: true });
+      const map: Record<string, string[]> = {};
+      (data ?? []).forEach((c) => {
+        const arr = map[c.round_id as string] ?? (map[c.round_id as string] = []);
+        arr.push((c.label as string | null) ?? "Ponto");
+      });
+      return map;
+    },
+  });
+
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles-active"],
     queryFn: async () => {
