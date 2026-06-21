@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X } from "lucide-react";
+import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -59,8 +60,10 @@ const emptyProfile: EmployeeProfileInput = {
 function EmployeesPage() {
   const { hasRole, user } = useAuth();
   const isStaff = hasRole("admin") || hasRole("supervisor");
-  const isAdmin = isStaff; // admin e supervisor têm os mesmos privilégios
+  const isAdmin = isStaff;
   const [rows, setRows] = useState<Row[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -70,19 +73,29 @@ function EmployeesPage() {
   const remove = useServerFn(deleteEmployee);
   const updateRole = useServerFn(updateEmployeeRole);
 
-  const [form, setForm] = useState<EmployeeProfileInput & { email: string; password: string; role: AppRole }>({
-    ...emptyProfile, email: "", password: "", role: "vigia",
+  const [form, setForm] = useState<EmployeeProfileInput & { email: string; password: string; role: AppRole; client_ids: string[] }>({
+    ...emptyProfile, email: "", password: "", role: "vigia", client_ids: [],
   });
-  const [editForm, setEditForm] = useState<EmployeeProfileInput>(emptyProfile);
+  const [editForm, setEditForm] = useState<EmployeeProfileInput & { client_ids: string[] }>({ ...emptyProfile, client_ids: [] });
   const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from("profiles").select("*");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const [{ data: profiles }, { data: roles }, { data: cls }, { data: ces }] = await Promise.all([
+      supabase.from("profiles").select("*"),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("clients").select("id,name").order("name"),
+      supabase.from("client_employees").select("user_id,client_id"),
+    ]);
     const roleMap = new Map<string, AppRole>();
     (roles ?? []).forEach((r) => roleMap.set(r.user_id, r.role as AppRole));
     setRows(((profiles ?? []) as Omit<Row, "role">[]).map((p) => ({ ...p, role: roleMap.get(p.id) ?? null })));
+    setClients((cls ?? []) as { id: string; name: string }[]);
+    const map: Record<string, string[]> = {};
+    ((ces ?? []) as { user_id: string; client_id: string }[]).forEach((r) => {
+      (map[r.user_id] ||= []).push(r.client_id);
+    });
+    setAssignments(map);
     setLoading(false);
   };
 
@@ -98,9 +111,10 @@ function EmployeesPage() {
         address_city: editing.address_city ?? "", address_state: editing.address_state ?? "",
         address_zip: editing.address_zip ?? "", notes: editing.notes ?? "",
         avatar_url: editing.avatar_url ?? "",
+        client_ids: assignments[editing.id] ?? [],
       });
     }
-  }, [editing]);
+  }, [editing, assignments]);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +122,7 @@ function EmployeesPage() {
     try {
       await create({ data: form });
       toast.success("Funcionário cadastrado");
-      setForm({ ...emptyProfile, email: "", password: "", role: "vigia" });
+      setForm({ ...emptyProfile, email: "", password: "", role: "vigia", client_ids: [] });
       setOpenNew(false);
       load();
     } catch (err) {
@@ -176,6 +190,11 @@ function EmployeesPage() {
                     </Select>
                   </div>
                 </div>
+                <ClientPicker
+                  clients={clients}
+                  value={form.client_ids}
+                  onChange={(ids) => setForm({ ...form, client_ids: ids })}
+                />
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setOpenNew(false)}>Cancelar</Button>
                   <Button type="submit" disabled={submitting}>
@@ -197,14 +216,15 @@ function EmployeesPage() {
               <TableHead>E-mail</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Função</TableHead>
+              <TableHead>Clientes</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
             ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum funcionário ainda.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum funcionário ainda.</TableCell></TableRow>
             ) : rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.full_name}</TableCell>
@@ -220,6 +240,19 @@ function EmployeesPage() {
                       </SelectContent>
                     </Select>
                   ) : <Badge variant="outline">{r.role ?? "—"}</Badge>}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                  {(() => {
+                    const ids = assignments[r.id] ?? [];
+                    if (ids.length === 0) return "—";
+                    const names = ids.map((id) => clients.find((c) => c.id === id)?.name).filter(Boolean) as string[];
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {names.slice(0, 3).map((n) => <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>)}
+                        {names.length > 3 && <span className="text-[10px]">+{names.length - 3}</span>}
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -252,6 +285,11 @@ function EmployeesPage() {
           <DialogHeader><DialogTitle>Editar funcionário — {editing?.full_name}</DialogTitle></DialogHeader>
           <form onSubmit={onSaveEdit} className="space-y-4">
             <ProfileFields value={editForm} onChange={(v) => setEditForm({ ...editForm, ...v })} />
+            <ClientPicker
+              clients={clients}
+              value={editForm.client_ids}
+              onChange={(ids) => setEditForm({ ...editForm, client_ids: ids })}
+            />
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
               <Button type="submit" disabled={submitting}>
@@ -264,6 +302,32 @@ function EmployeesPage() {
 
       {/* Documents dialog */}
       <DocumentsDialog row={docsFor} onClose={() => setDocsFor(null)} canManage={isStaff} />
+    </div>
+  );
+}
+
+function ClientPicker({ clients, value, onChange }: { clients: { id: string; name: string }[]; value: string[]; onChange: (ids: string[]) => void }) {
+  const toggle = (id: string) => {
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  };
+  return (
+    <div className="pt-2 border-t border-border/60">
+      <div className="text-xs font-semibold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+        <Building2 className="h-3 w-3" /> Clientes atendidos por este funcionário
+      </div>
+      {clients.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhum cliente cadastrado ainda.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto rounded-md border border-border/60 p-2">
+          {clients.map((c) => (
+            <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/40 rounded px-2 py-1">
+              <Checkbox checked={value.includes(c.id)} onCheckedChange={() => toggle(c.id)} />
+              <span className="truncate">{c.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground mt-1">Esses vínculos aparecem nos relatórios para identificar qual cliente foi atendido.</p>
     </div>
   );
 }

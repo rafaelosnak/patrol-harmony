@@ -21,9 +21,23 @@ export interface EmployeeProfileInput {
   avatar_url?: string | null;
 }
 
+async function syncClientAssignments(
+  supabaseAdmin: { from: (t: string) => { delete: () => { eq: (c: string, v: string) => Promise<unknown> }; insert: (rows: unknown[]) => Promise<{ error: { message: string } | null }> } },
+  userId: string,
+  companyId: string | null,
+  clientIds: string[] | undefined,
+) {
+  if (!clientIds) return;
+  await supabaseAdmin.from("client_employees").delete().eq("user_id", userId);
+  if (clientIds.length === 0 || !companyId) return;
+  const rows = clientIds.map((cid) => ({ user_id: userId, client_id: cid, company_id: companyId }));
+  const { error } = await supabaseAdmin.from("client_employees").insert(rows);
+  if (error) throw new Error(error.message);
+}
+
 export const createEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string; password: string; role: AppRole } & EmployeeProfileInput) => {
+  .inputValidator((input: { email: string; password: string; role: AppRole; client_ids?: string[] } & EmployeeProfileInput) => {
     if (!input.email || !input.password || !input.full_name || !input.role) {
       throw new Error("Campos obrigatórios faltando");
     }
@@ -66,12 +80,15 @@ export const createEmployee = createServerFn({ method: "POST" })
       avatar_url: data.avatar_url ?? null,
     };
     await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", uid);
+
+    const { data: companyRow } = await context.supabase.rpc("get_user_company", { _user_id: context.userId });
+    await syncClientAssignments(supabaseAdmin as unknown as Parameters<typeof syncClientAssignments>[0], uid, (companyRow as string | null) ?? null, data.client_ids);
     return { id: uid };
   });
 
 export const updateEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string } & EmployeeProfileInput) => {
+  .inputValidator((input: { user_id: string; client_ids?: string[] } & EmployeeProfileInput) => {
     if (!input.user_id || !input.full_name) throw new Error("Dados incompletos");
     return input;
   })
@@ -80,7 +97,7 @@ export const updateEmployee = createServerFn({ method: "POST" })
     const { data: ok2 } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "supervisor" });
     if (!ok && !ok2) throw new Error("Sem permissão");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { user_id, ...rest } = data;
+    const { user_id, client_ids, ...rest } = data;
     const { error } = await supabaseAdmin.from("profiles").update({
       full_name: rest.full_name,
       phone: rest.phone ?? null,
@@ -99,6 +116,9 @@ export const updateEmployee = createServerFn({ method: "POST" })
       avatar_url: rest.avatar_url ?? null,
     }).eq("id", user_id);
     if (error) throw new Error(error.message);
+
+    const { data: companyRow } = await context.supabase.rpc("get_user_company", { _user_id: context.userId });
+    await syncClientAssignments(supabaseAdmin as unknown as Parameters<typeof syncClientAssignments>[0], user_id, (companyRow as string | null) ?? null, client_ids);
     return { ok: true };
   });
 

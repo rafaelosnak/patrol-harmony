@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 
 type Row = Record<string, unknown>;
 type ColDef = { label: string; render: (r: Row, ctx: Ctx) => string };
-type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string>; checkpoints: Record<string, string[]> };
+type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string>; checkpoints: Record<string, string[]>; employeeClients: Record<string, string[]> };
 
 type ReportKey = "rondas" | "ocorrencias" | "alertas" | "escalas" | "viaturas" | "presenca";
 
@@ -50,6 +50,7 @@ const REPORTS: ReportDef[] = [
       { label: "Status", render: (r) => str(r.status) },
       { label: "Pontos", render: (r) => `${r.checkpoints_done ?? 0}/${r.checkpoints_total ?? 0}` },
       { label: "Pontos visitados", render: (r, c) => (c.checkpoints[r.id as string] ?? []).join(" • ") || "—" },
+      { label: "Cliente(s) do vigia", render: (r, c) => (c.employeeClients[r.user_id as string] ?? []).join(", ") || "—" },
     ],
   },
   {
@@ -63,6 +64,7 @@ const REPORTS: ReportDef[] = [
       { label: "Severidade", render: (r) => str(r.severity) },
       { label: "Status", render: (r) => str(r.status) },
       { label: "Responsável", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
+      { label: "Cliente(s) atendido(s)", render: (r, c) => (c.employeeClients[r.user_id as string] ?? []).join(", ") || "—" },
     ],
   },
   {
@@ -77,6 +79,7 @@ const REPORTS: ReportDef[] = [
       { label: "Observação", render: (r) => str(r.message) },
       { label: "Status", render: (r) => str(r.status) },
       { label: "Resolvido", render: (r) => fmtDateTime(r.resolved_at) },
+      { label: "Cliente(s) do vigia", render: (r, c) => (c.employeeClients[r.user_id as string] ?? []).join(", ") || "—" },
     ],
   },
   {
@@ -112,6 +115,7 @@ const REPORTS: ReportDef[] = [
     cols: [
       { label: "Data/Hora", render: (r) => fmtDateTime(r.punched_at) },
       { label: "Funcionário", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
+      { label: "Cliente(s) atendido(s)", render: (r, c) => (c.employeeClients[r.user_id as string] ?? []).join(", ") || "—" },
       { label: "Tipo", render: (r) => str(r.punch_type) },
       { label: "Local", render: (r) => r.latitude != null ? `${(r.latitude as number).toFixed(4)}, ${(r.longitude as number).toFixed(4)}` : "—" },
     ],
@@ -212,10 +216,21 @@ function ReportPreviewDialog({
         vehicleIds.length ? supabase.from("vehicles").select("id,plate,model").in("id", vehicleIds) : Promise.resolve({ data: [] as { id: string; plate: string; model: string | null }[] }),
       ]);
 
-      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {}, checkpoints: {} };
+      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {}, checkpoints: {}, employeeClients: {} };
       ((pp as { data: { id: string; full_name: string }[] | null }).data ?? []).forEach((p) => { ctx.profiles[p.id] = p.full_name ?? "—"; });
       ((uu as { data: { id: string; name: string }[] | null }).data ?? []).forEach((u) => { ctx.units[u.id] = u.name ?? "—"; });
       ((vv as { data: { id: string; plate: string; model: string | null }[] | null }).data ?? []).forEach((v) => { ctx.vehicles[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
+      if (r.needsProfiles && userIds.length > 0) {
+        const { data: ces } = await supabase
+          .from("client_employees")
+          .select("user_id,client_id,clients(name)")
+          .in("user_id", userIds);
+        ((ces ?? []) as { user_id: string; client_id: string; clients: { name: string } | null }[]).forEach((row) => {
+          const name = row.clients?.name ?? "—";
+          (ctx.employeeClients[row.user_id] ||= []).push(name);
+        });
+      }
 
       if (r.key === "rondas" && rows.length > 0) {
         const ids = rows.map((x) => x.id as string).filter(Boolean);
