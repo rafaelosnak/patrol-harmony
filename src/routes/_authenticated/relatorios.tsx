@@ -216,10 +216,21 @@ function ReportPreviewDialog({
         vehicleIds.length ? supabase.from("vehicles").select("id,plate,model").in("id", vehicleIds) : Promise.resolve({ data: [] as { id: string; plate: string; model: string | null }[] }),
       ]);
 
-      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {}, checkpoints: {} };
+      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {}, checkpoints: {}, employeeClients: {} };
       ((pp as { data: { id: string; full_name: string }[] | null }).data ?? []).forEach((p) => { ctx.profiles[p.id] = p.full_name ?? "—"; });
       ((uu as { data: { id: string; name: string }[] | null }).data ?? []).forEach((u) => { ctx.units[u.id] = u.name ?? "—"; });
       ((vv as { data: { id: string; plate: string; model: string | null }[] | null }).data ?? []).forEach((v) => { ctx.vehicles[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
+      if (r.needsProfiles && userIds.length > 0) {
+        const { data: ces } = await supabase
+          .from("client_employees")
+          .select("user_id,client_id,clients(name)")
+          .in("user_id", userIds);
+        ((ces ?? []) as { user_id: string; client_id: string; clients: { name: string } | null }[]).forEach((row) => {
+          const name = row.clients?.name ?? "—";
+          (ctx.employeeClients[row.user_id] ||= []).push(name);
+        });
+      }
 
       if (r.key === "rondas" && rows.length > 0) {
         const ids = rows.map((x) => x.id as string).filter(Boolean);
