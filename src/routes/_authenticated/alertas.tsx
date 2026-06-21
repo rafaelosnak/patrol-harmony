@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send, Pencil, X } from "lucide-react";
+import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send, Pencil, X, Bell, BellOff, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -9,12 +9,34 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/alertas")({
   head: () => ({ meta: [{ title: "Alertas — PhytonGuard" }] }),
   component: AlertsPage,
 });
+
+function playSiren() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.25;
+    gain.connect(ctx.destination);
+    for (let i = 0; i < 3; i++) {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      const t0 = now + i * 0.6;
+      o.frequency.setValueAtTime(880, t0);
+      o.frequency.exponentialRampToValueAtTime(440, t0 + 0.5);
+      o.connect(gain);
+      o.start(t0);
+      o.stop(t0 + 0.5);
+    }
+    setTimeout(() => ctx.close().catch(() => {}), 2200);
+  } catch {/* ignore */}
+}
 
 type AlertTypeInfo = {
   key: string;
@@ -33,6 +55,42 @@ function AlertsPage() {
   const [observation, setObservation] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [notifEnabled, setNotifEnabled] = useState<boolean>(
+    typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted",
+  );
+  const lastSeenRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("alerts-listen")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "alerts" }, async (payload) => {
+        const row = payload.new as { id: string; alert_type: string; user_id: string; message: string | null };
+        if (lastSeenRef.current === row.id) return;
+        lastSeenRef.current = row.id;
+        playSiren();
+        let who = "Vigia";
+        try {
+          const { data: p } = await supabase.from("profiles").select("full_name").eq("id", row.user_id).maybeSingle();
+          if (p?.full_name) who = p.full_name;
+        } catch {/* ignore */}
+        const title = `🚨 Alerta: ${row.alert_type.toUpperCase()}`;
+        const body = `${who}${row.message ? ` — ${row.message}` : ""}`;
+        toast.error(title, { description: body, duration: 12000 });
+        if ("Notification" in window && Notification.permission === "granted") {
+          try { new Notification(title, { body, tag: row.id, requireInteraction: true }); } catch {/* ignore */}
+        }
+        qc.invalidateQueries({ queryKey: ["alerts"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
+  const requestNotif = async () => {
+    if (!("Notification" in window)) { toast.error("Notificações não suportadas neste navegador"); return; }
+    const perm = await Notification.requestPermission();
+    setNotifEnabled(perm === "granted");
+    if (perm === "granted") toast.success("Notificações ativadas");
+  };
 
   const alertTypes: AlertTypeInfo[] = [
     {
@@ -105,7 +163,17 @@ function AlertsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t("alerts.title")} subtitle={t("alerts.subtitle")} />
+      <PageHeader title={t("alerts.title")} subtitle={t("alerts.subtitle")} actions={
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => playSiren()} title="Testar som">
+            <Volume2 className="h-4 w-4 mr-1" /> Testar som
+          </Button>
+          <Button size="sm" variant={notifEnabled ? "secondary" : "default"} onClick={requestNotif}>
+            {notifEnabled ? <Bell className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
+            {notifEnabled ? "Notificações ativas" : "Ativar notificações"}
+          </Button>
+        </div>
+      } />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {alertTypes.map((type) => (

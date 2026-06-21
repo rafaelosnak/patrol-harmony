@@ -157,12 +157,12 @@ function Dashboard() {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-primary" />
-            Plantonistas agora
+            Vigias em trabalho
           </h3>
           <span className="text-[11px] text-muted-foreground font-mono">{now.toLocaleString("pt-BR")}</span>
         </div>
         {(data?.shifts ?? []).length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">Nenhum plantonista no momento.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">Nenhum vigia em trabalho no momento.</p>
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {(data?.shifts ?? []).map((s) => {
