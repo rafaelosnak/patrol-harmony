@@ -81,12 +81,12 @@ const REPORTS: ReportDef[] = [
   },
   {
     key: "escalas", name: "Escalas", table: "shifts",
-    select: "id,user_id,unit_id,shift_type,start_at,end_at,status",
+    select: "id,user_id,client_id,shift_type,start_at,end_at,status",
     orderBy: "start_at",
-    needsProfiles: true, needsUnits: true,
+    needsProfiles: true, needsUnits: false,
     cols: [
       { label: "Funcionário", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
-      { label: "Unidade", render: (r, c) => c.units[r.unit_id as string] ?? "—" },
+      { label: "Cliente", render: (r, c) => c.units[r.client_id as string] ?? "—" },
       { label: "Turno", render: (r) => str(r.shift_type) },
       { label: "Início", render: (r) => fmtDateTime(r.start_at) },
       { label: "Fim", render: (r) => fmtDateTime(r.end_at) },
@@ -203,12 +203,12 @@ function ReportPreviewDialog({
       const rows = res.data ?? [];
 
       const userIds = r.needsProfiles ? Array.from(new Set(rows.map((x) => x.user_id as string).filter(Boolean))) : [];
-      const unitIds = r.needsUnits ? Array.from(new Set(rows.map((x) => x.unit_id as string).filter(Boolean))) : [];
+      const unitIds = r.needsUnits ? Array.from(new Set(rows.map((x) => x.client_id as string).filter(Boolean))) : [];
       const vehicleIds = r.needsVehicles ? Array.from(new Set(rows.map((x) => x.vehicle_id as string).filter(Boolean))) : [];
 
       const [pp, uu, vv] = await Promise.all([
         userIds.length ? supabase.from("profiles").select("id,full_name").in("id", userIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
-        unitIds.length ? supabase.from("units").select("id,name").in("id", unitIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+        unitIds.length ? supabase.from("clients").select("id,name").in("id", unitIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
         vehicleIds.length ? supabase.from("vehicles").select("id,plate,model").in("id", vehicleIds) : Promise.resolve({ data: [] as { id: string; plate: string; model: string | null }[] }),
       ]);
 

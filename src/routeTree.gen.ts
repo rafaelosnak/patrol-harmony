@@ -13,7 +13,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedViaturasRouteImport } from './routes/_authenticated/viaturas'
-import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticated/unidades'
 import { Route as AuthenticatedRondasRouteImport } from './routes/_authenticated/rondas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
@@ -46,11 +45,6 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedViaturasRoute = AuthenticatedViaturasRouteImport.update({
   id: '/viaturas',
   path: '/viaturas',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedUnidadesRoute = AuthenticatedUnidadesRouteImport.update({
-  id: '/unidades',
-  path: '/unidades',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRondasRoute = AuthenticatedRondasRouteImport.update({
@@ -145,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/ponto': typeof AuthenticatedPontoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
-  '/unidades': typeof AuthenticatedUnidadesRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRoutesByTo {
@@ -165,7 +158,6 @@ export interface FileRoutesByTo {
   '/ponto': typeof AuthenticatedPontoRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
-  '/unidades': typeof AuthenticatedUnidadesRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRoutesById {
@@ -187,7 +179,6 @@ export interface FileRoutesById {
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/rondas': typeof AuthenticatedRondasRoute
-  '/_authenticated/unidades': typeof AuthenticatedUnidadesRoute
   '/_authenticated/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRouteTypes {
@@ -209,7 +200,6 @@ export interface FileRouteTypes {
     | '/ponto'
     | '/relatorios'
     | '/rondas'
-    | '/unidades'
     | '/viaturas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -229,7 +219,6 @@ export interface FileRouteTypes {
     | '/ponto'
     | '/relatorios'
     | '/rondas'
-    | '/unidades'
     | '/viaturas'
   id:
     | '__root__'
@@ -250,7 +239,6 @@ export interface FileRouteTypes {
     | '/_authenticated/ponto'
     | '/_authenticated/relatorios'
     | '/_authenticated/rondas'
-    | '/_authenticated/unidades'
     | '/_authenticated/viaturas'
   fileRoutesById: FileRoutesById
 }
@@ -288,13 +276,6 @@ declare module '@tanstack/react-router' {
       path: '/viaturas'
       fullPath: '/viaturas'
       preLoaderRoute: typeof AuthenticatedViaturasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/unidades': {
-      id: '/_authenticated/unidades'
-      path: '/unidades'
-      fullPath: '/unidades'
-      preLoaderRoute: typeof AuthenticatedUnidadesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rondas': {
@@ -413,7 +394,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRondasRoute: typeof AuthenticatedRondasRoute
-  AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRoute
   AuthenticatedViaturasRoute: typeof AuthenticatedViaturasRoute
 }
 
@@ -432,7 +412,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRondasRoute: AuthenticatedRondasRoute,
-  AuthenticatedUnidadesRoute: AuthenticatedUnidadesRoute,
   AuthenticatedViaturasRoute: AuthenticatedViaturasRoute,
 }
 
