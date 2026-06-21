@@ -156,9 +156,23 @@ function OccPage() {
                 <td className="px-4 py-3"><Pill tone={o.severity === "critical" || o.severity === "high" ? "danger" : o.severity === "medium" ? "warn" : "default"}>{t(`occ.sev.${o.severity}` as never)}</Pill></td>
                 <td className="px-4 py-3"><Pill tone={o.status === "closed" ? "default" : o.status === "in_progress" ? "warn" : "danger"}>{t(`occ.status.${o.status === "in_progress" ? "inprogress" : o.status}` as never)}</Pill></td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right space-x-2">
                   {o.status !== "closed" && (
                     <Button size="sm" variant="outline" onClick={() => close.mutate(o.id)}>{t("occ.close")}</Button>
+                  )}
+                  {isStaff && (
+                    <Button size="sm" variant="ghost" title="Editar" onClick={() => setEditing({
+                      id: o.id, title: o.title ?? "", description: o.description ?? "",
+                      type: o.type, severity: o.severity, status: o.status,
+                    })}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                  {hasRole("admin") && (
+                    <Button size="sm" variant="ghost" title="Excluir"
+                      onClick={() => { if (confirm("Excluir esta ocorrência?")) remove.mutate(o.id); }}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   )}
                 </td>
               </tr>
@@ -166,6 +180,59 @@ function OccPage() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar ocorrência</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div>
+                <Label>{t("common.title")}</Label>
+                <Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} maxLength={140} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>{t("common.type")}</Label>
+                  <Select value={editing.type} onValueChange={(v) => setEditing({ ...editing, type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TYPES.map((tp) => <SelectItem key={tp} value={tp}>{t(`occ.types.${tp}` as never)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>{t("common.severity")}</Label>
+                  <Select value={editing.severity} onValueChange={(v) => setEditing({ ...editing, severity: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {SEVS.map((s) => <SelectItem key={s} value={s}>{t(`occ.sev.${s}` as never)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>{t("common.status")}</Label>
+                <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Aberta</SelectItem>
+                    <SelectItem value="in_progress">Em andamento</SelectItem>
+                    <SelectItem value="closed">Encerrada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("common.description")}</Label>
+                <Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={4} maxLength={1000} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
+            <Button onClick={() => update.mutate()} disabled={!editing?.title || update.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
