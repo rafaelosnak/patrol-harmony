@@ -39,6 +39,7 @@ type Row = {
   notes: string | null;
   status: string;
   role: AppRole | null;
+  avatar_url: string | null;
 };
 
 const ROLES: { value: AppRole; label: string }[] = [
@@ -51,6 +52,7 @@ const emptyProfile: EmployeeProfileInput = {
   full_name: "", phone: "", cpf: "", rg: "", birth_date: "", hired_at: "",
   address_street: "", address_number: "", address_complement: "",
   address_district: "", address_city: "", address_state: "", address_zip: "", notes: "",
+  avatar_url: "",
 };
 
 function EmployeesPage() {
@@ -94,6 +96,7 @@ function EmployeesPage() {
         address_complement: editing.address_complement ?? "", address_district: editing.address_district ?? "",
         address_city: editing.address_city ?? "", address_state: editing.address_state ?? "",
         address_zip: editing.address_zip ?? "", notes: editing.notes ?? "",
+        avatar_url: editing.avatar_url ?? "",
       });
     }
   }, [editing]);
@@ -267,6 +270,8 @@ function EmployeesPage() {
 function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onChange: (v: Partial<EmployeeProfileInput>) => void }) {
   return (
     <div className="space-y-4">
+      <AvatarUploader value={value.avatar_url ?? ""} onChange={(v) => onChange({ avatar_url: v })} />
+
       <div>
         <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Dados pessoais</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -298,6 +303,66 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
       <div>
         <Label>Observações</Label>
         <Textarea rows={3} value={value.notes ?? ""} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Anotações internas, restrições, treinamentos..." />
+      </div>
+    </div>
+  );
+}
+
+function AvatarUploader({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!value) { setSignedUrl(null); return; }
+    supabase.storage.from("avatars").createSignedUrl(value, 3600).then(({ data }) => {
+      if (alive) setSignedUrl(data?.signedUrl ?? null);
+    });
+    return () => { alive = false; };
+  }, [value]);
+
+  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Imagem maior que 5MB"); return; }
+    setUploading(true);
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, {
+      contentType: file.type, upsert: false,
+    });
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+    if (error) { toast.error(error.message); return; }
+    onChange(path);
+    toast.success("Foto carregada");
+  };
+
+  return (
+    <div className="flex items-center gap-4 pb-3 border-b border-border/60">
+      <div className="h-20 w-20 rounded-full overflow-hidden bg-muted grid place-items-center border border-border/60 shrink-0">
+        {signedUrl ? (
+          <img src={signedUrl} alt="Avatar" className="h-full w-full object-cover" />
+        ) : (
+          <UserPlus className="h-8 w-8 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1">
+        <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Foto do funcionário</div>
+        <p className="text-xs text-muted-foreground mb-2">Aparece no topo quando o funcionário logar.</p>
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+            {value ? "Trocar foto" : "Enviar foto"}
+          </Button>
+          {value && (
+            <Button type="button" size="sm" variant="ghost" onClick={() => onChange("")}>
+              <X className="h-3 w-3" /> Remover
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

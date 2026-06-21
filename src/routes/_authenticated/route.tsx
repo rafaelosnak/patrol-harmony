@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -39,6 +40,16 @@ function AuthedLayout() {
 
   const initials = (profile?.full_name || "P G").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!profile?.avatar_url) { setAvatarUrl(null); return; }
+    supabase.storage.from("avatars").createSignedUrl(profile.avatar_url, 3600).then(({ data }) => {
+      if (alive) setAvatarUrl(data?.signedUrl ?? null);
+    });
+    return () => { alive = false; };
+  }, [profile?.avatar_url]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -78,8 +89,8 @@ function AuthedLayout() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 hover:bg-accent transition-colors">
-                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-primary/50 grid place-items-center text-[11px] font-bold text-primary-foreground">
-                      {initials}
+                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-primary/50 grid place-items-center text-[11px] font-bold text-primary-foreground overflow-hidden">
+                      {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
                     </div>
                     <span className="hidden sm:flex flex-col items-start leading-tight">
                       <span className="text-xs font-medium">{profile?.full_name || "Operador"}</span>

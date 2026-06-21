@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Plus, MapPin, ExternalLink, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader } from "@/components/pg/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -19,25 +20,49 @@ export const Route = createFileRoute("/_authenticated/clientes")({
   component: ClientsPage,
 });
 
+type Client = {
+  id: string;
+  name: string;
+  document: string | null;
+  contact: string | null;
+  address: string | null;
+  created_at: string;
+};
+
+const gmapsUrl = (addr: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+const wazeUrl = (addr: string) => `https://www.waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`;
+const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`;
+
 function ClientsPage() {
   const { t } = useI18n();
   const { hasRole } = useAuth();
   const canWrite = hasRole("admin") || hasRole("supervisor");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", document: "", contact: "" });
+  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "" });
+  const [previewClient, setPreviewClient] = useState<Client | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<Client[]>({
     queryKey: ["clients"],
-    queryFn: async () => (await supabase.from("clients").select("*").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => ((await supabase.from("clients").select("*").order("created_at", { ascending: false })).data ?? []) as Client[],
   });
 
   const create = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("clients").insert({ name: form.name, document: form.document || null, contact: form.contact || null });
+      const { error } = await supabase.from("clients").insert({
+        name: form.name,
+        document: form.document || null,
+        contact: form.contact || null,
+        address: form.address || null,
+      });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Cliente cadastrado"); qc.invalidateQueries({ queryKey: ["clients"] }); setOpen(false); setForm({ name: "", document: "", contact: "" }); },
+    onSuccess: () => {
+      toast.success("Cliente cadastrado");
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      setOpen(false);
+      setForm({ name: "", document: "", contact: "", address: "" });
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
@@ -47,12 +72,42 @@ function ClientsPage() {
         canWrite && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4" />{t("clients.new")}</Button></DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
               <DialogHeader><DialogTitle>{t("clients.new")}</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div><Label>{t("common.name")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={120} /></div>
-                <div><Label>{t("clients.document")}</Label><Input value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} maxLength={32} /></div>
-                <div><Label>{t("clients.contact")}</Label><Input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} maxLength={120} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>{t("clients.document")}</Label><Input value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} maxLength={32} /></div>
+                  <div><Label>{t("clients.contact")}</Label><Input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} maxLength={120} /></div>
+                </div>
+                <div>
+                  <Label className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Endereço completo</Label>
+                  <Textarea
+                    rows={2}
+                    placeholder="Ex.: Av. Paulista, 1000 — Bela Vista, São Paulo - SP"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  />
+                  {form.address.trim() && (
+                    <div className="mt-2 space-y-2">
+                      <div className="flex gap-2">
+                        <a href={gmapsUrl(form.address)} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
+                          <ExternalLink className="h-3 w-3" /> Abrir no Google Maps
+                        </a>
+                        <a href={wazeUrl(form.address)} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 hover:underline">
+                          <Navigation className="h-3 w-3" /> Abrir no Waze
+                        </a>
+                      </div>
+                      <iframe
+                        title="Prévia do endereço"
+                        src={gmapsEmbed(form.address)}
+                        className="w-full h-48 rounded-md border border-border/60"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
@@ -70,23 +125,72 @@ function ClientsPage() {
               <th className="text-left px-4 py-3">{t("common.name")}</th>
               <th className="text-left px-4 py-3">{t("clients.document")}</th>
               <th className="text-left px-4 py-3">{t("clients.contact")}</th>
+              <th className="text-left px-4 py-3">Endereço</th>
               <th className="text-left px-4 py-3">{t("common.created")}</th>
+              <th className="text-right px-4 py-3">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {isLoading && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
-            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={4}><EmptyState icon={Building2} title={t("common.empty")} /></td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
+            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={6}><EmptyState icon={Building2} title={t("common.empty")} /></td></tr>}
             {(data ?? []).map((c) => (
               <tr key={c.id} className="hover:bg-accent/30">
                 <td className="px-4 py-3 font-medium">{c.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{c.document ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{c.contact ?? "—"}</td>
+                <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{c.address ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-right">
+                  {c.address && (
+                    <div className="inline-flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setPreviewClient(c)} title="Ver no mapa">
+                        <MapPin className="h-3 w-3" />
+                      </Button>
+                      <a href={gmapsUrl(c.address)} target="_blank" rel="noreferrer">
+                        <Button size="sm" variant="ghost" title="Google Maps">
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </a>
+                      <a href={wazeUrl(c.address)} target="_blank" rel="noreferrer">
+                        <Button size="sm" variant="ghost" title="Waze">
+                          <Navigation className="h-3 w-3" />
+                        </Button>
+                      </a>
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!previewClient} onOpenChange={(o) => !o && setPreviewClient(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{previewClient?.name}</DialogTitle>
+          </DialogHeader>
+          {previewClient?.address && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{previewClient.address}</p>
+              <iframe
+                title="Mapa do cliente"
+                src={gmapsEmbed(previewClient.address)}
+                className="w-full h-80 rounded-md border border-border/60"
+                loading="lazy"
+              />
+              <div className="flex gap-2">
+                <a href={gmapsUrl(previewClient.address)} target="_blank" rel="noreferrer" className="flex-1">
+                  <Button variant="outline" className="w-full"><ExternalLink className="h-4 w-4" /> Google Maps</Button>
+                </a>
+                <a href={wazeUrl(previewClient.address)} target="_blank" rel="noreferrer" className="flex-1">
+                  <Button className="w-full"><Navigation className="h-4 w-4" /> Navegar no Waze</Button>
+                </a>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
