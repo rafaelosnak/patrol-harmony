@@ -121,7 +121,23 @@ function AuthedLayout() {
           </header>
 
           <main className="flex-1 p-4 sm:p-6 max-w-[1600px] w-full mx-auto">
-            <Outlet />
+            {!isSuperAdmin && companyStatus && companyStatus.status !== "active" ? (
+              <div className="glass rounded-2xl p-8 text-center max-w-xl mx-auto mt-12">
+                <div className="h-14 w-14 rounded-2xl bg-status-sos/20 grid place-items-center text-status-sos mx-auto mb-4">
+                  <ShieldAlert className="h-7 w-7" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">
+                  Acesso {companyStatus.status === "suspended" ? "suspenso" : "bloqueado por inadimplência"}
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  A empresa <strong>{companyStatus.name}</strong> está com o acesso ao PhytonGuard {companyStatus.status === "suspended" ? "suspenso" : "bloqueado por inadimplência"}.
+                  Entre em contato com o suporte para regularizar.
+                </p>
+                <Button variant="outline" onClick={signOut}>Sair</Button>
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </main>
         </div>
       </div>
