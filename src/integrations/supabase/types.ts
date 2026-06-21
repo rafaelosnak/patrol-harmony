@@ -240,6 +240,50 @@ export type Database = {
         }
         Relationships: []
       }
+      round_checkpoints: {
+        Row: {
+          accuracy: number | null
+          created_at: string
+          id: string
+          label: string | null
+          lat: number | null
+          lng: number | null
+          notes: string | null
+          round_id: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          round_id: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          lat?: number | null
+          lng?: number | null
+          notes?: string | null
+          round_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_checkpoints_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rounds: {
         Row: {
           checkpoints_done: number
