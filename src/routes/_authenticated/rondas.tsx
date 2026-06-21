@@ -211,17 +211,12 @@ function RoundsPage() {
                     <Button size="sm" variant="outline" onClick={() => setOpenRound(r)}>
                       <MapPin className="h-3 w-3" /> Pontos
                     </Button>
-                    {inProg && user?.id === r.user_id && (
+                    {inProg && (
                       <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)}>
                         <Square className="h-3 w-3" /> {t("rounds.finish")}
                       </Button>
                     )}
-                    {isStaff && inProg && (
-                      <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)} title="Finalizar (admin)">
-                        <Square className="h-3 w-3" />
-                      </Button>
-                    )}
-                    {isStaff && (
+                    {hasRole("admin") && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -273,7 +268,7 @@ function RoundsPage() {
         round={openRound}
         onClose={() => setOpenRound(null)}
         currentUserId={user?.id}
-        canEditLabel={isStaff}
+        canEditLabel={true}
       />
 
       <LocationsDialog open={openLocations} onClose={() => setOpenLocations(false)} canEdit={isStaff} />
