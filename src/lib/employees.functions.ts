@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type AppRole = "admin" | "supervisor" | "vigia";
+type AppRole = "admin" | "supervisor" | "vigia" | "central";
 
 export interface EmployeeProfileInput {
   full_name: string;
