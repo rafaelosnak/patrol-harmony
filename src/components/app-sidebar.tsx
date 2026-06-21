@@ -20,49 +20,48 @@ export function AppSidebar() {
   const { t } = useI18n();
   const { isStaff, isSuperAdmin } = useAuth();
 
-  const groups: { label: string; items: { title: string; url: string; icon: typeof Map }[] }[] = [
-    ...(isSuperAdmin ? [{
-      label: "Super Admin",
-      items: [
-        { title: "Empresas", url: "/super-admin", icon: Crown },
-      ],
-    }] : []),
-    {
-      label: t("nav.group.operation"),
-      items: [
-        { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard },
-        { title: t("nav.map"), url: "/mapa", icon: Map },
-        { title: t("nav.teams"), url: "/equipes", icon: Users },
-        { title: t("nav.rounds"), url: "/rondas", icon: Footprints },
-        { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
-        { title: t("nav.alerts"), url: "/alertas", icon: Siren },
-        { title: "Ponto", url: "/ponto", icon: Clock },
-        { title: "Chat interno", url: "/chat", icon: MessageCircle },
-      ],
-    },
-    ...(isStaff ? [{
-      label: t("nav.group.management"),
-      items: [
-        { title: "Funcionários", url: "/funcionarios", icon: UserCog },
-        { title: t("nav.shifts"), url: "/escalas", icon: CalendarClock },
-        { title: t("nav.vehicles"), url: "/viaturas", icon: Truck },
-        { title: t("nav.announcements"), url: "/comunicados", icon: Megaphone },
-        { title: t("nav.clients"), url: "/clientes", icon: Building2 },
-      ],
-    }] : []),
-    {
-      label: t("nav.group.system"),
-      items: [
-        ...(isStaff ? [{ title: t("nav.reports"), url: "/relatorios", icon: BarChart3 }] : []),
-        { title: t("nav.settings"), url: "/configuracoes", icon: Settings },
-      ],
-    },
-  ];
+  const groups: { label: string; items: { title: string; url: string; icon: typeof Map }[] }[] = isSuperAdmin
+    ? [{
+        label: "Super Admin",
+        items: [{ title: "Empresas", url: "/super-admin", icon: Crown }],
+      }]
+    : [
+        {
+          label: t("nav.group.operation"),
+          items: [
+            { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard },
+            { title: t("nav.map"), url: "/mapa", icon: Map },
+            { title: t("nav.teams"), url: "/equipes", icon: Users },
+            { title: t("nav.rounds"), url: "/rondas", icon: Footprints },
+            { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
+            { title: t("nav.alerts"), url: "/alertas", icon: Siren },
+            { title: "Ponto", url: "/ponto", icon: Clock },
+            { title: "Chat interno", url: "/chat", icon: MessageCircle },
+          ],
+        },
+        ...(isStaff ? [{
+          label: t("nav.group.management"),
+          items: [
+            { title: "Funcionários", url: "/funcionarios", icon: UserCog },
+            { title: t("nav.shifts"), url: "/escalas", icon: CalendarClock },
+            { title: t("nav.vehicles"), url: "/viaturas", icon: Truck },
+            { title: t("nav.announcements"), url: "/comunicados", icon: Megaphone },
+            { title: t("nav.clients"), url: "/clientes", icon: Building2 },
+          ],
+        }] : []),
+        {
+          label: t("nav.group.system"),
+          items: [
+            ...(isStaff ? [{ title: t("nav.reports"), url: "/relatorios", icon: BarChart3 }] : []),
+            { title: t("nav.settings"), url: "/configuracoes", icon: Settings },
+          ],
+        },
+      ];
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="px-3 py-4">
-        <Link to="/dashboard" className="flex items-center gap-2.5">
+        <Link to={isSuperAdmin ? "/super-admin" : "/dashboard"} className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 grid place-items-center shadow-[var(--shadow-glow)]">
             <ShieldAlert className="h-5 w-5 text-primary-foreground" />
           </div>
