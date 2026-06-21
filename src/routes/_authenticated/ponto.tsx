@@ -40,6 +40,7 @@ function fmtDate(iso: string) {
 function PontoPage() {
   const { user, isStaff } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [punching, setPunching] = useState<PunchType | null>(null);
   const [now, setNow] = useState(new Date());
@@ -51,10 +52,18 @@ function PontoPage() {
 
   const load = async () => {
     setLoading(true);
-    let query = supabase.from("time_entries").select("*").order("punched_at", { ascending: false }).limit(100);
+    let query = supabase.from("time_entries").select("*").order("punched_at", { ascending: false }).limit(200);
     if (!isStaff && user) query = query.eq("user_id", user.id);
     const { data } = await query;
-    setEntries((data ?? []) as Entry[]);
+    const list = (data ?? []) as Entry[];
+    setEntries(list);
+    const ids = Array.from(new Set(list.map((e) => e.user_id)));
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", ids);
+      const map: Record<string, string> = {};
+      (profs ?? []).forEach((p) => { map[p.id] = p.full_name; });
+      setNames(map);
+    }
     setLoading(false);
   };
 
