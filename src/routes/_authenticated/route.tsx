@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Languages, ShieldAlert } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
+import { useLiveLocation } from "@/hooks/use-live-location";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -31,9 +32,15 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthedLayout() {
   const { t, lang, setLang } = useI18n();
-  const { profile, roles, isSuperAdmin, companyId } = useAuth();
+  const { profile, roles, isSuperAdmin, companyId, user } = useAuth();
   const navigate = useNavigate();
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+
+  // Live GPS tracking for on-duty users (vigia/supervisor in serviço/ronda)
+  useLiveLocation({
+    userId: user?.id,
+    enabled: !isSuperAdmin && (profile?.status === "working" || profile?.status === "round"),
+  });
 
   useEffect(() => {
     if (isSuperAdmin && !pathname.startsWith("/super-admin")) {

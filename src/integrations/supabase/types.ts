@@ -235,7 +235,10 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           document: string | null
+          geocoded_at: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
           notes: string | null
         }
@@ -247,7 +250,10 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           document?: string | null
+          geocoded_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
           notes?: string | null
         }
@@ -259,7 +265,10 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           document?: string | null
+          geocoded_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           notes?: string | null
         }
@@ -446,6 +455,9 @@ export type Database = {
           full_name: string
           hired_at: string | null
           id: string
+          last_lat: number | null
+          last_lng: number | null
+          last_location_at: string | null
           notes: string | null
           phone: string | null
           rg: string | null
@@ -469,6 +481,9 @@ export type Database = {
           full_name?: string
           hired_at?: string | null
           id: string
+          last_lat?: number | null
+          last_lng?: number | null
+          last_location_at?: string | null
           notes?: string | null
           phone?: string | null
           rg?: string | null
@@ -492,6 +507,9 @@ export type Database = {
           full_name?: string
           hired_at?: string | null
           id?: string
+          last_lat?: number | null
+          last_lng?: number | null
+          last_location_at?: string | null
           notes?: string | null
           phone?: string | null
           rg?: string | null
