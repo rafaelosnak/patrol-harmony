@@ -179,6 +179,18 @@ function ReportsPage() {
 function ReportPreviewDialog({
   report, onClose,
 }: { report: ReportDef | null; onClose: () => void }) {
+  const [employeeFilter, setEmployeeFilter] = useState<string>("__all__");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+
+  const { data: employees } = useQuery({
+    queryKey: ["report-employees"],
+    enabled: !!report?.needsProfiles,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id,full_name").order("full_name");
+      return (data ?? []) as { id: string; full_name: string }[];
+    },
+  });
   const { data, isLoading, error } = useQuery({
     queryKey: ["report-data", report?.key],
     enabled: !!report,
