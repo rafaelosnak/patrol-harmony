@@ -7,7 +7,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Bell, LogOut, Languages, ShieldAlert } from "lucide-react";
+import { LogOut, Languages, ShieldAlert } from "lucide-react";
+import { NotificationBell } from "@/components/notification-bell";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -82,9 +83,7 @@ function AuthedLayout() {
             </div>
 
             <div className="ml-auto flex items-center gap-1">
-              <Button variant="ghost" size="icon" aria-label="Notificações">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <NotificationBell />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
