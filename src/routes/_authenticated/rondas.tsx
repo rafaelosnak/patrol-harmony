@@ -33,6 +33,7 @@ type RoundRow = {
   status: string;
   checkpoints_done: number;
   checkpoints_total: number;
+  notes: string | null;
 };
 
 type Checkpoint = {
