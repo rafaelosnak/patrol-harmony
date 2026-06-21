@@ -45,20 +45,20 @@ function MapPage() {
 
   const { data: team } = useQuery({
     queryKey: ["map-team"],
-    queryFn: async () => (await supabase.from("profiles").select("id,full_name,status,unit_id").limit(50)).data ?? [],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name,status").limit(50)).data ?? [],
   });
   const { data: vehicles } = useQuery({
     queryKey: ["map-vehicles"],
     queryFn: async () => (await supabase.from("vehicles").select("id,prefix,plate,status").limit(50)).data ?? [],
   });
-  const { data: units } = useQuery({
-    queryKey: ["map-units"],
-    queryFn: async () => (await supabase.from("units").select("id,name,address,latitude,longitude").limit(200)).data ?? [],
+  const { data: clients } = useQuery({
+    queryKey: ["map-clients"],
+    queryFn: async () => (await supabase.from("clients").select("id,name,address").limit(200)).data ?? [],
     refetchInterval: 30000,
   });
   const { data: alerts } = useQuery({
     queryKey: ["map-alerts"],
-    queryFn: async () => (await supabase.from("alerts").select("id,alert_type,latitude,longitude,created_at,profiles(full_name)").eq("status", "active").limit(50)).data ?? [],
+    queryFn: async () => (await supabase.from("alerts").select("id,alert_type,latitude,longitude,created_at,user_id").eq("status", "active").limit(50)).data ?? [],
     refetchInterval: 10000,
   });
 
@@ -96,17 +96,9 @@ function MapPage() {
     const bounds = new g.maps.LatLngBounds();
     let has = false;
 
-    (units ?? []).forEach((u) => {
-      if (u.latitude == null || u.longitude == null) return;
-      const pos = { lat: Number(u.latitude), lng: Number(u.longitude) };
-      const m = new g.maps.Marker({
-        position: pos, map, title: u.name ?? "Unidade",
-        icon: { path: g.maps.SymbolPath.CIRCLE, scale: 8, fillColor: "#22c55e", fillOpacity: 0.9, strokeColor: "#064e3b", strokeWeight: 2 },
-      });
-      const info = new g.maps.InfoWindow({ content: `<div style="color:#0b1220"><strong>${u.name ?? ""}</strong><br/>${u.address ?? ""}</div>` });
-      m.addListener("click", () => info.open({ map, anchor: m }));
-      markersRef.current.push(m);
-      bounds.extend(pos); has = true;
+    (clients ?? []).forEach((c) => {
+      // clients don't have lat/lng yet — skip until geocoding is added
+      if (!c.address) return;
     });
 
     (alerts ?? []).forEach((a) => {
@@ -117,8 +109,7 @@ function MapPage() {
         icon: { path: g.maps.SymbolPath.CIRCLE, scale: 10, fillColor: "#ef4444", fillOpacity: 0.95, strokeColor: "#7f1d1d", strokeWeight: 2 },
         animation: g.maps.Animation.BOUNCE,
       });
-      const who = (a as { profiles?: { full_name?: string } }).profiles?.full_name ?? "—";
-      const info = new g.maps.InfoWindow({ content: `<div style="color:#0b1220"><strong>🚨 ${a.alert_type}</strong><br/>${who}<br/>${new Date(a.created_at).toLocaleString()}</div>` });
+      const info = new g.maps.InfoWindow({ content: `<div style="color:#0b1220"><strong>🚨 ${a.alert_type}</strong><br/>${new Date(a.created_at).toLocaleString()}</div>` });
       m.addListener("click", () => info.open({ map, anchor: m }));
       markersRef.current.push(m);
       bounds.extend(pos); has = true;
@@ -128,7 +119,7 @@ function MapPage() {
       map.fitBounds(bounds);
       if ((markersRef.current.length ?? 0) <= 1) map.setZoom(15);
     }
-  }, [units, alerts]);
+  }, [clients, alerts]);
 
   const activeAlerts = alerts ?? [];
 
@@ -158,7 +149,7 @@ function MapPage() {
               <ul className="mt-2 space-y-1">
                 {activeAlerts.map((a) => (
                   <li key={a.id} className="text-xs py-1">
-                    <strong className="capitalize">{a.alert_type}</strong> • {(a as { profiles?: { full_name?: string } }).profiles?.full_name ?? "—"}
+                    <strong className="capitalize">{a.alert_type}</strong>
                   </li>
                 ))}
               </ul>

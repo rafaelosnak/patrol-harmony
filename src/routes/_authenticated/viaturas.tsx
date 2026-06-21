@@ -20,34 +20,33 @@ export const Route = createFileRoute("/_authenticated/viaturas")({
   component: VehiclesPage,
 });
 
-type Vehicle = { id: string; prefix: string; plate: string; model: string | null; unit_id: string | null; status: string };
+type Vehicle = { id: string; prefix: string; plate: string; model: string | null; status: string };
 
 function VehiclesPage() {
   const { t } = useI18n();
-  const { isStaff, hasRole } = useAuth();
+  const { isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Vehicle | null>(null);
-  const [form, setForm] = useState({ prefix: "", plate: "", model: "", unit_id: "", status: "available" });
+  const [form, setForm] = useState({ prefix: "", plate: "", model: "", status: "available" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["vehicles"],
-    queryFn: async () => (await supabase.from("vehicles").select("*, units(name)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("vehicles").select("*").order("created_at", { ascending: false })).data ?? [],
   });
-  const { data: units } = useQuery({ queryKey: ["units-min"], queryFn: async () => (await supabase.from("units").select("id,name")).data ?? [] });
 
   const save = useMutation({
     mutationFn: async () => {
       const payload = {
         prefix: form.prefix, plate: form.plate, model: form.model || null,
-        unit_id: form.unit_id || null, status: form.status,
+        status: form.status,
       };
       if (editing) {
         const { error } = await supabase.from("vehicles").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("vehicles").insert(payload);
+        const { error } = await supabase.from("vehicles").insert({ ...payload, company_id: companyId! });
         if (error) throw error;
       }
     },
@@ -55,7 +54,7 @@ function VehiclesPage() {
       toast.success(editing ? "Viatura atualizada" : "Viatura cadastrada");
       qc.invalidateQueries({ queryKey: ["vehicles"] });
       setOpen(false); setEditing(null);
-      setForm({ prefix: "", plate: "", model: "", unit_id: "", status: "available" });
+      setForm({ prefix: "", plate: "", model: "", status: "available" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -66,8 +65,8 @@ function VehiclesPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ prefix: "", plate: "", model: "", unit_id: "", status: "available" }); setOpen(true); };
-  const openEdit = (v: Vehicle) => { setEditing(v); setForm({ prefix: v.prefix, plate: v.plate, model: v.model ?? "", unit_id: v.unit_id ?? "", status: v.status }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ prefix: "", plate: "", model: "", status: "available" }); setOpen(true); };
+  const openEdit = (v: Vehicle) => { setEditing(v); setForm({ prefix: v.prefix, plate: v.plate, model: v.model ?? "", status: v.status }); setOpen(true); };
 
   const tone = (s: string) => s === "patrol" ? "info" : s === "maintenance" ? "warn" : "success";
   const label = (s: string) => s === "patrol" ? t("vehicles.patrol") : s === "maintenance" ? t("vehicles.maintenance") : t("vehicles.available");
@@ -86,13 +85,6 @@ function VehiclesPage() {
                   <div><Label>{t("common.plate")}</Label><Input value={form.plate} onChange={(e) => setForm({ ...form, plate: e.target.value.toUpperCase() })} maxLength={10} /></div>
                 </div>
                 <div><Label>{t("common.model")}</Label><Input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} maxLength={60} /></div>
-                <div>
-                  <Label>{t("common.unit")}</Label>
-                  <Select value={form.unit_id} onValueChange={(v) => setForm({ ...form, unit_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(units ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
                 <div>
                   <Label>{t("common.status")}</Label>
                   <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
@@ -117,33 +109,29 @@ function VehiclesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {isLoading && <div className="text-sm text-muted-foreground">{t("common.loading")}</div>}
         {!isLoading && (data ?? []).length === 0 && <div className="col-span-full"><EmptyState icon={Truck} title={t("common.empty")} /></div>}
-        {(data ?? []).map((v) => {
-          const unit = (v as unknown as { units?: { name?: string } }).units;
-          return (
-            <div key={v.id} className="glass rounded-xl p-4 hover:border-primary/40 transition-colors">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-xs uppercase text-muted-foreground">{t("common.prefix")}</div>
-                  <div className="text-xl font-bold font-mono">{v.prefix}</div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Pill tone={tone(v.status)}>{label(v.status)}</Pill>
-                  {isStaff && (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(v as Vehicle)}><Pencil className="h-3 w-3" /></Button>
-                      {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir viatura?")) del.mutate(v.id); }}><Trash2 className="h-3 w-3" /></Button>}
-                    </div>
-                  )}
-                </div>
+        {(data ?? []).map((v) => (
+          <div key={v.id} className="glass rounded-xl p-4 hover:border-primary/40 transition-colors">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs uppercase text-muted-foreground">{t("common.prefix")}</div>
+                <div className="text-xl font-bold font-mono">{v.prefix}</div>
               </div>
-              <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="font-mono">{v.plate}</span>
-                <span className="text-muted-foreground">{v.model ?? "—"}</span>
+              <div className="flex flex-col items-end gap-1">
+                <Pill tone={tone(v.status)}>{label(v.status)}</Pill>
+                {isStaff && (
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(v as Vehicle)}><Pencil className="h-3 w-3" /></Button>
+                    {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir viatura?")) del.mutate(v.id); }}><Trash2 className="h-3 w-3" /></Button>}
+                  </div>
+                )}
               </div>
-              <div className="mt-2 text-xs text-muted-foreground">{unit?.name ?? "—"}</div>
             </div>
-          );
-        })}
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="font-mono">{v.plate}</span>
+              <span className="text-muted-foreground">{v.model ?? "—"}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ function fmtDate(iso: string) {
 }
 
 function PontoPage() {
-  const { user, isStaff } = useAuth();
+  const { user, isStaff, companyId } = useAuth();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -92,7 +92,7 @@ function PontoPage() {
     } catch { /* opcional */ }
 
     const { error } = await supabase.from("time_entries").insert({
-      user_id: user.id, punch_type: type, latitude: lat, longitude: lng,
+      user_id: user.id, punch_type: type, latitude: lat, longitude: lng, company_id: companyId!,
     });
     setPunching(null);
     if (error) { toast.error(error.message); return; }

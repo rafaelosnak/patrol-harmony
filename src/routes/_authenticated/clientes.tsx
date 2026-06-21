@@ -35,7 +35,7 @@ const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIC
 
 function ClientsPage() {
   const { t } = useI18n();
-  const { hasRole } = useAuth();
+  const { hasRole, companyId } = useAuth();
   const canWrite = hasRole("admin") || hasRole("supervisor");
   const canDelete = hasRole("admin");
   const qc = useQueryClient();
@@ -61,7 +61,7 @@ function ClientsPage() {
         const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("clients").insert(payload);
+        const { error } = await supabase.from("clients").insert({ ...payload, company_id: companyId! });
         if (error) throw error;
       }
     },

@@ -32,7 +32,7 @@ function Dashboard() {
         supabase.from("rounds").select("id,user_id,vehicle_id,status,started_at,finished_at,checkpoints_done,checkpoints_total").gte("started_at", new Date(Date.now() - 7 * 86400000).toISOString()).order("started_at", { ascending: false }),
         supabase.from("occurrences").select("id,status,severity,title,created_at").order("created_at", { ascending: false }).limit(50),
         supabase.from("alerts").select("id,status,alert_type,created_at").eq("status", "active"),
-        supabase.from("shifts").select("id,user_id,unit_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), units(name)").lte("start_at", nowIso).gte("end_at", nowIso),
+        supabase.from("shifts").select("id,user_id,client_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), clients(name)").lte("start_at", nowIso).gte("end_at", nowIso),
       ]);
       return {
         profiles: profiles.data ?? [],
@@ -52,7 +52,7 @@ function Dashboard() {
     queryKey: ["dashboard-month-shifts", monthStart.toISOString()],
     queryFn: async () => (await supabase
       .from("shifts")
-      .select("id,user_id,unit_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), units(name)")
+      .select("id,user_id,client_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), clients(name)")
       .gte("start_at", monthStart.toISOString())
       .lt("start_at", monthEnd.toISOString())
       .order("start_at", { ascending: true })
@@ -181,7 +181,7 @@ function Dashboard() {
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {(data?.shifts ?? []).map((s) => {
               const profile = (s as unknown as { profiles?: { full_name?: string } }).profiles;
-              const unit = (s as unknown as { units?: { name?: string } }).units;
+              const client = (s as unknown as { clients?: { name?: string } }).clients;
               return (
                 <li key={s.id} className="rounded-lg border border-border/60 bg-card/40 p-3 flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full bg-primary/15 grid place-items-center text-primary text-xs font-semibold">
@@ -190,7 +190,7 @@ function Dashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{profile?.full_name ?? "—"}</div>
                     <div className="text-[11px] text-muted-foreground truncate">
-                      {unit?.name ? `${unit.name} • ` : ""}{s.shift_type} • até {new Date(s.end_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      {client?.name ? `${client.name} • ` : ""}{s.shift_type} • até {new Date(s.end_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </div>
                   </div>
                   <Pill tone="success">no turno</Pill>
@@ -216,19 +216,19 @@ function Dashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                <tr><th className="text-left py-2">Dia</th><th className="text-left">Vigia</th><th className="text-left">Unidade</th><th className="text-left">Turno</th><th className="text-left">Horário</th></tr>
+                <tr><th className="text-left py-2">Dia</th><th className="text-left">Vigia</th><th className="text-left">Cliente</th><th className="text-left">Turno</th><th className="text-left">Horário</th></tr>
               </thead>
               <tbody>
                 {(monthShifts ?? []).map((s) => {
                   const profile = (s as unknown as { profiles?: { full_name?: string } }).profiles;
-                  const unit = (s as unknown as { units?: { name?: string } }).units;
+                  const client = (s as unknown as { clients?: { name?: string } }).clients;
                   const st = new Date(s.start_at);
                   const en = new Date(s.end_at);
                   return (
                     <tr key={s.id} className="border-t border-border/40">
                       <td className="py-1.5 font-mono text-xs">{st.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</td>
                       <td className="truncate max-w-[180px]">{profile?.full_name ?? "—"}</td>
-                      <td className="text-muted-foreground truncate max-w-[160px]">{unit?.name ?? "—"}</td>
+                      <td className="text-muted-foreground truncate max-w-[160px]">{client?.name ?? "—"}</td>
                       <td><Pill tone="info">{s.shift_type}</Pill></td>
                       <td className="text-xs text-muted-foreground">{st.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} → {en.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td>
                     </tr>

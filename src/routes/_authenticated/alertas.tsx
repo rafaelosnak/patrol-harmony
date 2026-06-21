@@ -48,7 +48,7 @@ type AlertTypeInfo = {
 
 function AlertsPage() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const qc = useQueryClient();
 
   const [openDialog, setOpenDialog] = useState<string | null>(null);
@@ -125,7 +125,7 @@ function AlertsPage() {
   const trigger = useMutation({
     mutationFn: async ({ alert_type, message }: { alert_type: string; message: string | null }) => {
       if (!user) throw new Error("Não autenticado");
-      const { error } = await supabase.from("alerts").insert({ user_id: user.id, alert_type, message });
+      const { error } = await supabase.from("alerts").insert({ user_id: user.id, alert_type, message, company_id: companyId! });
       if (error) throw error;
     },
     onSuccess: () => {

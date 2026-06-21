@@ -25,7 +25,7 @@ type Ann = { id: string; title: string; body: string; audience: string; created_
 
 function AnnPage() {
   const { t } = useI18n();
-  const { user, isStaff, hasRole } = useAuth();
+  const { user, isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -47,7 +47,7 @@ function AnnPage() {
         if (error) throw error;
       } else {
         const { error } = await supabase.from("announcements").insert({
-          author_id: user.id, title: form.title, body: form.body, audience: form.audience,
+          author_id: user.id, title: form.title, body: form.body, audience: form.audience, company_id: companyId!,
         });
         if (error) throw error;
       }

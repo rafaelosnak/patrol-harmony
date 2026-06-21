@@ -20,18 +20,18 @@ export const Route = createFileRoute("/_authenticated/escalas")({
   component: ShiftsPage,
 });
 
-type Shift = { id: string; user_id: string; unit_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
+type Shift = { id: string; user_id: string; client_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
 
 function ShiftsPage() {
   const { t } = useI18n();
-  const { isStaff, hasRole } = useAuth();
+  const { isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Shift | null>(null);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const defaultForm = {
-    user_id: "", unit_id: "", shift_type: "12x36",
+    user_id: "", client_id: "", shift_type: "12x36",
     start_at: today.toISOString().slice(0, 16),
     end_at: new Date(today.getTime() + 12 * 3600000).toISOString().slice(0, 16),
   };
@@ -39,16 +39,25 @@ function ShiftsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["shifts"],
-    queryFn: async () => (await supabase.from("shifts").select("*, profiles!shifts_user_id_fkey(full_name), units(name)").order("start_at", { ascending: false }).limit(100)).data ?? [],
+    queryFn: async () => (await supabase.from("shifts").select("id,user_id,client_id,shift_type,start_at,end_at,status").order("start_at", { ascending: false }).limit(100)).data ?? [],
   });
   const { data: people } = useQuery({ queryKey: ["profiles-min"], queryFn: async () => (await supabase.from("profiles").select("id,full_name")).data ?? [] });
-  const { data: units } = useQuery({ queryKey: ["units-min"], queryFn: async () => (await supabase.from("units").select("id,name")).data ?? [] });
+  const { data: clients } = useQuery({ queryKey: ["clients-min"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
+
+  const profileMap: Record<string, string> = {};
+  (people ?? []).forEach((p) => { profileMap[p.id] = p.full_name ?? "—"; });
+  const clientMap: Record<string, string> = {};
+  (clients ?? []).forEach((c) => { clientMap[c.id] = c.name ?? "—"; });
 
   const save = useMutation({
     mutationFn: async () => {
       const payload = {
-        user_id: form.user_id, unit_id: form.unit_id || null, shift_type: form.shift_type,
-        start_at: new Date(form.start_at).toISOString(), end_at: new Date(form.end_at).toISOString(),
+        user_id: form.user_id,
+        client_id: form.client_id || null,
+        shift_type: form.shift_type,
+        start_at: new Date(form.start_at).toISOString(),
+        end_at: new Date(form.end_at).toISOString(),
+        company_id: companyId!,
       };
       if (editing) {
         const { error } = await supabase.from("shifts").update(payload).eq("id", editing.id);
@@ -76,7 +85,7 @@ function ShiftsPage() {
   const openEdit = (s: Shift) => {
     setEditing(s);
     setForm({
-      user_id: s.user_id, unit_id: s.unit_id ?? "", shift_type: s.shift_type,
+      user_id: s.user_id, client_id: s.client_id ?? "", shift_type: s.shift_type,
       start_at: new Date(s.start_at).toISOString().slice(0, 16),
       end_at: new Date(s.end_at).toISOString().slice(0, 16),
     });
@@ -100,10 +109,10 @@ function ShiftsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label>{t("common.unit")}</Label>
-                  <Select value={form.unit_id} onValueChange={(v) => setForm({ ...form, unit_id: v })}>
+                  <Label>Cliente</Label>
+                  <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(units ?? []).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(clients ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -139,7 +148,7 @@ function ShiftsPage() {
           <thead className="text-xs uppercase text-muted-foreground bg-card/40">
             <tr>
               <th className="text-left px-4 py-3">{t("common.name")}</th>
-              <th className="text-left px-4 py-3">{t("common.unit")}</th>
+              <th className="text-left px-4 py-3">Cliente</th>
               <th className="text-left px-4 py-3">{t("common.type")}</th>
               <th className="text-left px-4 py-3">{t("common.start")}</th>
               <th className="text-left px-4 py-3">{t("common.end")}</th>
@@ -150,28 +159,24 @@ function ShiftsPage() {
           <tbody className="divide-y divide-border/60">
             {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
             {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={7}><EmptyState icon={CalendarClock} title={t("common.empty")} /></td></tr>}
-            {(data ?? []).map((s) => {
-              const profile = (s as unknown as { profiles?: { full_name?: string } }).profiles;
-              const unit = (s as unknown as { units?: { name?: string } }).units;
-              return (
-                <tr key={s.id} className="hover:bg-accent/30">
-                  <td className="px-4 py-3 font-medium">{profile?.full_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{unit?.name ?? "—"}</td>
-                  <td className="px-4 py-3"><Pill tone="info">{s.shift_type}</Pill></td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.start_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.end_at).toLocaleString()}</td>
-                  <td className="px-4 py-3"><Pill>{s.status}</Pill></td>
-                  {isStaff && (
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => openEdit(s as Shift)}><Pencil className="h-3 w-3" /></Button>
-                        {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir escala?")) del.mutate(s.id); }}><Trash2 className="h-3 w-3" /></Button>}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
+            {(data ?? []).map((s) => (
+              <tr key={s.id} className="hover:bg-accent/30">
+                <td className="px-4 py-3 font-medium">{profileMap[s.user_id] ?? "—"}</td>
+                <td className="px-4 py-3 text-muted-foreground">{s.client_id ? (clientMap[s.client_id] ?? "—") : "—"}</td>
+                <td className="px-4 py-3"><Pill tone="info">{s.shift_type}</Pill></td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.start_at).toLocaleString()}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.end_at).toLocaleString()}</td>
+                <td className="px-4 py-3"><Pill>{s.status}</Pill></td>
+                {isStaff && (
+                  <td className="px-4 py-3 text-right">
+                    <div className="inline-flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(s as Shift)}><Pencil className="h-3 w-3" /></Button>
+                      {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir escala?")) del.mutate(s.id); }}><Trash2 className="h-3 w-3" /></Button>}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

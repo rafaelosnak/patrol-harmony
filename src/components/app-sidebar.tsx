@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Users, Footprints, AlertOctagon, Siren,
-  CalendarClock, Truck, Megaphone, Building2, MapPin, BarChart3, Settings, ShieldAlert,
-  UserCog, Clock, MessageCircle,
+  CalendarClock, Truck, Megaphone, Building2, BarChart3, Settings, ShieldAlert,
+  UserCog, Clock, MessageCircle, Crown,
 } from "lucide-react";
 
 import {
@@ -18,9 +18,15 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const { t } = useI18n();
-  const { isStaff } = useAuth();
+  const { isStaff, isSuperAdmin } = useAuth();
 
   const groups: { label: string; items: { title: string; url: string; icon: typeof Map }[] }[] = [
+    ...(isSuperAdmin ? [{
+      label: "Super Admin",
+      items: [
+        { title: "Empresas", url: "/super-admin", icon: Crown },
+      ],
+    }] : []),
     {
       label: t("nav.group.operation"),
       items: [
@@ -42,7 +48,6 @@ export function AppSidebar() {
         { title: t("nav.vehicles"), url: "/viaturas", icon: Truck },
         { title: t("nav.announcements"), url: "/comunicados", icon: Megaphone },
         { title: t("nav.clients"), url: "/clientes", icon: Building2 },
-        { title: t("nav.units"), url: "/unidades", icon: MapPin },
       ],
     }] : []),
     {

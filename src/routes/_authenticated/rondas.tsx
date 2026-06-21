@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/rondas")({
 type RoundRow = {
   id: string;
   user_id: string;
-  unit_id: string | null;
+  client_id: string | null;
   vehicle_id: string | null;
   started_at: string;
   finished_at: string | null;
@@ -54,7 +54,7 @@ type CheckpointLocation = {
   id: string;
   name: string;
   description: string | null;
-  unit_id: string | null;
+  client_id: string | null;
   lat: number | null;
   lng: number | null;
   active: boolean;
@@ -73,7 +73,7 @@ function getPosition(): Promise<GeolocationPosition | null> {
 
 function RoundsPage() {
   const { t } = useI18n();
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, companyId } = useAuth();
   const qc = useQueryClient();
   const [openRound, setOpenRound] = useState<RoundRow | null>(null);
   const [openLocations, setOpenLocations] = useState(false);
@@ -88,7 +88,7 @@ function RoundsPage() {
     queryFn: async (): Promise<RoundRow[]> => {
       const { data, error } = await supabase
         .from("rounds")
-        .select("id,user_id,unit_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes")
+        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes")
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -146,6 +146,7 @@ function RoundsPage() {
         user_id: user.id, checkpoints_total: total, checkpoints_done: 0,
         vehicle_id: startVehicleId || null,
         notes: startTrajeto.trim() || null,
+        company_id: companyId!,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
@@ -334,6 +335,7 @@ function CheckpointsDialog({
   round, onClose, currentUserId, canEditLabel,
 }: { round: RoundRow | null; onClose: () => void; currentUserId?: string; canEditLabel?: boolean }) {
   const qc = useQueryClient();
+  const { companyId } = useAuth();
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [locationId, setLocationId] = useState<string>("");
@@ -391,6 +393,7 @@ function CheckpointsDialog({
         accuracy: pos?.coords.accuracy ?? null,
         photo_url,
         checkpoint_location_id: locationId || null,
+        company_id: companyId!,
       });
       if (error) throw error;
       return pos !== null;
@@ -570,10 +573,10 @@ function LocationsDialog({
   open, onClose, canEdit,
 }: { open: boolean; onClose: () => void; canEdit: boolean }) {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [unitId, setUnitId] = useState<string>("");
+  const [clientId, setClientId] = useState<string>("");
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["checkpoint-locations-all"],
@@ -582,15 +585,15 @@ function LocationsDialog({
       const { data, error } = await supabase
         .from("checkpoint_locations").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as CheckpointLocation[];
+      return (data ?? []) as unknown as CheckpointLocation[];
     },
   });
 
-  const { data: units } = useQuery({
-    queryKey: ["units-min"],
+  const { data: clients } = useQuery({
+    queryKey: ["clients-min-rondas"],
     enabled: open,
     queryFn: async () => {
-      const { data } = await supabase.from("units").select("id,name").order("name");
+      const { data } = await supabase.from("clients").select("id,name").order("name");
       return (data ?? []) as { id: string; name: string }[];
     },
   });
@@ -602,10 +605,11 @@ function LocationsDialog({
       const { error } = await supabase.from("checkpoint_locations").insert({
         name: name.trim(),
         description: description.trim() || null,
-        unit_id: unitId || null,
+        client_id: clientId || null,
         lat: pos?.coords.latitude ?? null,
         lng: pos?.coords.longitude ?? null,
         created_by: user?.id ?? null,
+        company_id: companyId!,
       });
       if (error) throw error;
     },

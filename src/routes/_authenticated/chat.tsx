@@ -31,7 +31,7 @@ type Message = {
 };
 
 function ChatPage() {
-  const { user, isStaff } = useAuth();
+  const { user, isStaff, companyId } = useAuth();
   const qc = useQueryClient();
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -84,7 +84,7 @@ function ChatPage() {
     const body = text.trim();
     setText("");
     const { error } = await supabase.from("messages").insert({
-      thread_user_id: threadId, sender_id: user.id, body,
+      thread_user_id: threadId, sender_id: user.id, body, company_id: companyId!,
     });
     if (error) { toast.error(error.message); setText(body); }
     else qc.invalidateQueries({ queryKey: ["chat-messages", threadId] });
