@@ -13,60 +13,81 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
   component: ReportsPage,
 });
 
+type Row = Record<string, unknown>;
+type ColDef = { label: string; render: (r: Row, ctx: Ctx) => string };
+type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string> };
+
 type ReportKey = "rondas" | "ocorrencias" | "alertas" | "escalas" | "viaturas" | "presenca";
 
-type Col = { key: string; label: string; format?: (v: unknown, row: Record<string, unknown>) => string };
+type ReportDef = {
+  key: ReportKey;
+  name: string;
+  table: string;
+  select: string;
+  orderBy: string;
+  cols: ColDef[];
+  needsProfiles?: boolean;
+  needsUnits?: boolean;
+  needsVehicles?: boolean;
+};
 
-const REPORTS: { key: ReportKey; name: string; table: string; select: string; orderBy: string; cols: Col[] }[] = [
+const fmtDateTime = (v: unknown) => (v ? new Date(v as string).toLocaleString("pt-BR") : "—");
+const str = (v: unknown) => (v == null || v === "" ? "—" : String(v));
+
+const REPORTS: ReportDef[] = [
   {
     key: "rondas", name: "Rondas", table: "rounds",
-    select: "id,started_at,finished_at,status,checkpoints_done,checkpoints_total, profiles!rounds_user_id_fkey(full_name), vehicles(plate,model)",
+    select: "id,user_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total",
     orderBy: "started_at",
+    needsProfiles: true, needsVehicles: true,
     cols: [
-      { key: "started_at", label: "Início", format: (v) => new Date(v as string).toLocaleString("pt-BR") },
-      { key: "finished_at", label: "Fim", format: (v) => v ? new Date(v as string).toLocaleString("pt-BR") : "—" },
-      { key: "profiles.full_name", label: "Vigia" },
-      { key: "vehicles.plate", label: "Viatura" },
-      { key: "status", label: "Status" },
-      { key: "checkpoints", label: "Pontos", format: (_v, r) => `${r.checkpoints_done ?? 0}/${r.checkpoints_total ?? 0}` },
+      { label: "Início", render: (r) => fmtDateTime(r.started_at) },
+      { label: "Fim", render: (r) => fmtDateTime(r.finished_at) },
+      { label: "Vigia", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
+      { label: "Viatura", render: (r, c) => c.vehicles[r.vehicle_id as string] ?? "—" },
+      { label: "Status", render: (r) => str(r.status) },
+      { label: "Pontos", render: (r) => `${r.checkpoints_done ?? 0}/${r.checkpoints_total ?? 0}` },
     ],
   },
   {
     key: "ocorrencias", name: "Ocorrências", table: "occurrences",
-    select: "id,title,severity,status,created_at, profiles!occurrences_user_id_fkey(full_name)",
+    select: "id,user_id,title,severity,status,created_at",
     orderBy: "created_at",
+    needsProfiles: true,
     cols: [
-      { key: "created_at", label: "Data", format: (v) => new Date(v as string).toLocaleString("pt-BR") },
-      { key: "title", label: "Título" },
-      { key: "severity", label: "Severidade" },
-      { key: "status", label: "Status" },
-      { key: "profiles.full_name", label: "Responsável" },
+      { label: "Data", render: (r) => fmtDateTime(r.created_at) },
+      { label: "Título", render: (r) => str(r.title) },
+      { label: "Severidade", render: (r) => str(r.severity) },
+      { label: "Status", render: (r) => str(r.status) },
+      { label: "Responsável", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
     ],
   },
   {
     key: "alertas", name: "Alertas", table: "alerts",
-    select: "id,alert_type,message,status,created_at,resolved_at, profiles(full_name)",
+    select: "id,user_id,alert_type,message,status,created_at,resolved_at",
     orderBy: "created_at",
+    needsProfiles: true,
     cols: [
-      { key: "created_at", label: "Data", format: (v) => new Date(v as string).toLocaleString("pt-BR") },
-      { key: "alert_type", label: "Tipo" },
-      { key: "profiles.full_name", label: "Vigia" },
-      { key: "message", label: "Observação", format: (v) => (v as string) ?? "—" },
-      { key: "status", label: "Status" },
-      { key: "resolved_at", label: "Resolvido", format: (v) => v ? new Date(v as string).toLocaleString("pt-BR") : "—" },
+      { label: "Data", render: (r) => fmtDateTime(r.created_at) },
+      { label: "Tipo", render: (r) => str(r.alert_type) },
+      { label: "Vigia", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
+      { label: "Observação", render: (r) => str(r.message) },
+      { label: "Status", render: (r) => str(r.status) },
+      { label: "Resolvido", render: (r) => fmtDateTime(r.resolved_at) },
     ],
   },
   {
     key: "escalas", name: "Escalas", table: "shifts",
-    select: "id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), units(name)",
+    select: "id,user_id,unit_id,shift_type,start_at,end_at,status",
     orderBy: "start_at",
+    needsProfiles: true, needsUnits: true,
     cols: [
-      { key: "profiles.full_name", label: "Funcionário" },
-      { key: "units.name", label: "Unidade" },
-      { key: "shift_type", label: "Turno" },
-      { key: "start_at", label: "Início", format: (v) => new Date(v as string).toLocaleString("pt-BR") },
-      { key: "end_at", label: "Fim", format: (v) => new Date(v as string).toLocaleString("pt-BR") },
-      { key: "status", label: "Status" },
+      { label: "Funcionário", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
+      { label: "Unidade", render: (r, c) => c.units[r.unit_id as string] ?? "—" },
+      { label: "Turno", render: (r) => str(r.shift_type) },
+      { label: "Início", render: (r) => fmtDateTime(r.start_at) },
+      { label: "Fim", render: (r) => fmtDateTime(r.end_at) },
+      { label: "Status", render: (r) => str(r.status) },
     ],
   },
   {
@@ -74,32 +95,37 @@ const REPORTS: { key: ReportKey; name: string; table: string; select: string; or
     select: "id,plate,model,year,status,created_at",
     orderBy: "plate",
     cols: [
-      { key: "plate", label: "Placa" },
-      { key: "model", label: "Modelo" },
-      { key: "year", label: "Ano" },
-      { key: "status", label: "Status" },
+      { label: "Placa", render: (r) => str(r.plate) },
+      { label: "Modelo", render: (r) => str(r.model) },
+      { label: "Ano", render: (r) => str(r.year) },
+      { label: "Status", render: (r) => str(r.status) },
     ],
   },
   {
     key: "presenca", name: "Presença (Ponto)", table: "time_entries",
-    select: "id,punch_type,punched_at,latitude,longitude,user_id",
+    select: "id,user_id,punch_type,punched_at,latitude,longitude",
     orderBy: "punched_at",
+    needsProfiles: true,
     cols: [
-      { key: "punched_at", label: "Data/Hora", format: (v) => new Date(v as string).toLocaleString("pt-BR") },
-      { key: "user_id", label: "Funcionário" },
-      { key: "punch_type", label: "Tipo" },
-      { key: "location", label: "Local", format: (_v, r) => r.latitude != null ? `${(r.latitude as number).toFixed(4)}, ${(r.longitude as number).toFixed(4)}` : "—" },
+      { label: "Data/Hora", render: (r) => fmtDateTime(r.punched_at) },
+      { label: "Funcionário", render: (r, c) => c.profiles[r.user_id as string] ?? "—" },
+      { label: "Tipo", render: (r) => str(r.punch_type) },
+      { label: "Local", render: (r) => r.latitude != null ? `${(r.latitude as number).toFixed(4)}, ${(r.longitude as number).toFixed(4)}` : "—" },
     ],
   },
 ];
 
-function getValue(row: Record<string, unknown>, key: string): unknown {
-  if (!key.includes(".")) return row[key];
-  return key.split(".").reduce<unknown>((acc, k) => {
-    if (acc && typeof acc === "object") return (acc as Record<string, unknown>)[k];
-    return undefined;
-  }, row);
-}
+// loosely-typed client to allow dynamic table names
+const sb = supabase as unknown as {
+  from: (t: string) => {
+    select: (s: string, o?: { count?: "exact"; head?: boolean }) => {
+      order?: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: Row[] | null; error: { message: string } | null }> };
+      in?: (col: string, vals: string[]) => Promise<{ data: Row[] | null; error: { message: string } | null }>;
+      count?: number | null;
+      then?: unknown;
+    } & Promise<{ count: number | null; data: Row[] | null; error: { message: string } | null }>;
+  };
+};
 
 function ReportsPage() {
   const { t } = useI18n();
@@ -110,8 +136,8 @@ function ReportsPage() {
     queryFn: async () => {
       const out: Record<string, number> = {};
       await Promise.all(REPORTS.map(async (r) => {
-        const { count } = await (supabase as unknown as { from: (t: string) => { select: (s: string, o: object) => Promise<{ count: number | null }> } }).from(r.table).select("id", { count: "exact", head: true });
-        out[r.key] = count ?? 0;
+        const res = await sb.from(r.table).select("id", { count: "exact", head: true });
+        out[r.key] = res.count ?? 0;
       }));
       return out;
     },
@@ -149,66 +175,49 @@ function ReportsPage() {
 
 function ReportPreviewDialog({
   report, onClose,
-}: { report: typeof REPORTS[number] | null; onClose: () => void }) {
-  const { data, isLoading } = useQuery({
+}: { report: ReportDef | null; onClose: () => void }) {
+  const { data, isLoading, error } = useQuery({
     queryKey: ["report-data", report?.key],
     enabled: !!report,
-    queryFn: async () => {
-      const client = supabase as unknown as {
-        from: (t: string) => {
-          select: (s: string) => {
-            order: (c: string, o: { ascending: boolean }) => {
-              limit: (n: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
-            };
-          };
-        };
-      };
-      const { data, error } = await client
-        .from(report!.table)
-        .select(report!.select)
-        .order(report!.orderBy, { ascending: false })
+    queryFn: async (): Promise<{ rows: Row[]; ctx: Ctx }> => {
+      const r = report!;
+      const res = await (sb.from(r.table).select(r.select) as unknown as { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: Row[] | null; error: { message: string } | null }> } })
+        .order(r.orderBy, { ascending: false })
         .limit(500);
-      if (error) throw error;
-      return (data ?? []) as Record<string, unknown>[];
+      if (res.error) throw new Error(res.error.message);
+      const rows = res.data ?? [];
+
+      const userIds = r.needsProfiles ? Array.from(new Set(rows.map((x) => x.user_id as string).filter(Boolean))) : [];
+      const unitIds = r.needsUnits ? Array.from(new Set(rows.map((x) => x.unit_id as string).filter(Boolean))) : [];
+      const vehicleIds = r.needsVehicles ? Array.from(new Set(rows.map((x) => x.vehicle_id as string).filter(Boolean))) : [];
+
+      const [pp, uu, vv] = await Promise.all([
+        userIds.length ? supabase.from("profiles").select("id,full_name").in("id", userIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+        unitIds.length ? supabase.from("units").select("id,name").in("id", unitIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+        vehicleIds.length ? supabase.from("vehicles").select("id,plate,model").in("id", vehicleIds) : Promise.resolve({ data: [] as { id: string; plate: string; model: string | null }[] }),
+      ]);
+
+      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {} };
+      ((pp as { data: { id: string; full_name: string }[] | null }).data ?? []).forEach((p) => { ctx.profiles[p.id] = p.full_name ?? "—"; });
+      ((uu as { data: { id: string; name: string }[] | null }).data ?? []).forEach((u) => { ctx.units[u.id] = u.name ?? "—"; });
+      ((vv as { data: { id: string; plate: string; model: string | null }[] | null }).data ?? []).forEach((v) => { ctx.vehicles[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
+      return { rows, ctx };
     },
   });
 
-  // For time_entries report, resolve user names
-  const { data: nameMap } = useQuery({
-    queryKey: ["report-names", report?.key, (data ?? []).length],
-    enabled: report?.key === "presenca" && !!data && data.length > 0,
-    queryFn: async () => {
-      const ids = Array.from(new Set((data ?? []).map((r) => r.user_id as string).filter(Boolean)));
-      if (!ids.length) return {};
-      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", ids);
-      const map: Record<string, string> = {};
-      (profs ?? []).forEach((p) => { map[p.id] = p.full_name ?? "—"; });
-      return map;
-    },
-  });
-
-  const rows = useMemo(() => {
-    if (!report || !data) return [];
-    return data.map((row) => {
-      const out: Record<string, string> = {};
-      report.cols.forEach((c) => {
-        let val: unknown = getValue(row, c.key);
-        if (report.key === "presenca" && c.key === "user_id") {
-          val = nameMap?.[val as string] ?? "—";
-        }
-        out[c.label] = c.format ? c.format(val, row) : (val == null ? "—" : String(val));
-      });
-      return out;
-    });
-  }, [report, data, nameMap]);
+  const tableRows = useMemo(() => {
+    if (!report || !data) return [] as string[][];
+    return data.rows.map((row) => report.cols.map((c) => c.render(row, data.ctx)));
+  }, [report, data]);
 
   const printReport = () => {
     if (!report) return;
     const win = window.open("", "_blank", "width=900,height=700");
     if (!win) return;
-    const headers = report.cols.map((c) => `<th>${c.label}</th>`).join("");
-    const body = rows.map((r) => `<tr>${report.cols.map((c) => `<td>${escapeHtml(r[c.label] ?? "")}</td>`).join("")}</tr>`).join("");
-    win.document.write(`<!doctype html><html><head><title>Relatório — ${report.name}</title>
+    const headers = report.cols.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
+    const body = tableRows.map((r) => `<tr>${r.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+    win.document.write(`<!doctype html><html><head><title>Relatório — ${escapeHtml(report.name)}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
         h1 { font-size: 18px; margin: 0 0 4px; }
@@ -218,8 +227,8 @@ function ReportPreviewDialog({
         th { background: #f4f4f4; }
         tr:nth-child(even) td { background: #fafafa; }
       </style></head><body>
-      <h1>Relatório — ${report.name}</h1>
-      <div class="meta">Gerado em ${new Date().toLocaleString("pt-BR")} • ${rows.length} registros</div>
+      <h1>Relatório — ${escapeHtml(report.name)}</h1>
+      <div class="meta">Gerado em ${new Date().toLocaleString("pt-BR")} • ${tableRows.length} registros</div>
       <table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>
       <script>window.onload = () => { window.print(); };<\/script>
       </body></html>`);
@@ -229,9 +238,9 @@ function ReportPreviewDialog({
   const exportCsv = () => {
     if (!report) return;
     const headers = report.cols.map((c) => c.label);
-    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
     const csv = [headers.map(escape).join(",")]
-      .concat(rows.map((r) => headers.map((h) => escape(r[h] ?? "")).join(",")))
+      .concat(tableRows.map((r) => r.map(escape).join(",")))
       .join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -257,7 +266,9 @@ function ReportPreviewDialog({
             <div className="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
             </div>
-          ) : rows.length === 0 ? (
+          ) : error ? (
+            <div className="p-8 text-center text-sm text-destructive">Erro ao carregar: {(error as Error).message}</div>
+          ) : tableRows.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">Sem registros.</div>
           ) : (
             <table className="w-full text-sm">
@@ -269,10 +280,10 @@ function ReportPreviewDialog({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
+                {tableRows.map((r, i) => (
                   <tr key={i} className="border-t border-border/40">
-                    {report!.cols.map((c) => (
-                      <td key={c.label} className="p-2">{r[c.label]}</td>
+                    {r.map((cell, j) => (
+                      <td key={j} className="p-2">{cell}</td>
                     ))}
                   </tr>
                 ))}
@@ -283,10 +294,10 @@ function ReportPreviewDialog({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
-          <Button variant="outline" onClick={exportCsv} disabled={!rows.length}>
+          <Button variant="outline" onClick={exportCsv} disabled={!tableRows.length}>
             <Download className="h-3 w-3" /> Exportar (CSV)
           </Button>
-          <Button onClick={printReport} disabled={!rows.length}>
+          <Button onClick={printReport} disabled={!tableRows.length}>
             <Printer className="h-3 w-3" /> Imprimir / PDF
           </Button>
         </DialogFooter>
@@ -296,5 +307,5 @@ function ReportPreviewDialog({
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
