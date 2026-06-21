@@ -48,7 +48,7 @@ export function useAuth() {
   }, []);
 
   const hasRole = (r: AppRole) => roles.includes(r);
-  const isStaff = roles.some((r) => ["admin", "coordenador", "supervisor", "central"].includes(r));
+  const isStaff = roles.some((r) => ["admin", "supervisor"].includes(r));
 
   return { user, profile, roles, hasRole, isStaff, loading };
 }
