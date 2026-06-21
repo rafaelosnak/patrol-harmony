@@ -254,14 +254,22 @@ function EntryRow({
       <td className="p-3"><Badge variant="outline" className={step.color}>{step.label}</Badge></td>
       <td className="p-3 text-xs text-muted-foreground">
         {entry.latitude != null ? (
-          <a
-            href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
-            target="_blank" rel="noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline"
-          >
-            <MapPin className="h-3 w-3" />
-            {entry.latitude.toFixed(4)}, {entry.longitude!.toFixed(4)}
-          </a>
+          <div className="inline-flex items-center gap-2">
+            <a
+              href={`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`}
+              target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" /> Maps
+            </a>
+            <a
+              href={`https://www.waze.com/ul?ll=${entry.latitude},${entry.longitude}&navigate=yes`}
+              target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <Navigation className="h-3 w-3" /> Waze
+            </a>
+          </div>
         ) : "—"}
       </td>
       {canEdit && (
