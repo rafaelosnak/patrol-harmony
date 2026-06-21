@@ -29,9 +29,18 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const resolveHome = async (uid: string) => {
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+    const roles = (data ?? []).map((r) => r.role);
+    return roles.includes("super_admin") ? "/super-admin" : "/dashboard";
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        const dest = await resolveHome(data.session.user.id);
+        navigate({ to: dest });
+      }
     });
   }, [navigate]);
 
@@ -53,7 +62,9 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/dashboard" });
+      const { data: u } = await supabase.auth.getUser();
+      const dest = u.user ? await resolveHome(u.user.id) : "/dashboard";
+      navigate({ to: dest });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally { setLoading(false); }

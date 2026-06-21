@@ -32,6 +32,13 @@ function AuthedLayout() {
   const { t, lang, setLang } = useI18n();
   const { profile, roles, isSuperAdmin, companyId } = useAuth();
   const navigate = useNavigate();
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+
+  useEffect(() => {
+    if (isSuperAdmin && !pathname.startsWith("/super-admin")) {
+      navigate({ to: "/super-admin", replace: true });
+    }
+  }, [isSuperAdmin, pathname, navigate]);
 
   // Check company status (block if suspended/overdue, unless super admin)
   const { data: companyStatus } = useQuery({
