@@ -150,27 +150,53 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="glass rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="h-4 w-4 text-primary" />{t("dash.activity")}</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="glass rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Footprints className="h-4 w-4 text-primary" />Rondas recentes</h3>
+          </div>
+          <ul className="divide-y divide-border/60">
+            {(data?.rounds ?? []).slice(0, 8).map((r) => (
+              <li key={r.id} className="py-2.5 flex items-center gap-3">
+                <Pill tone={r.status === "in_progress" ? "warn" : r.status === "completed" ? "success" : "default"}>
+                  {r.status === "in_progress" ? "Em curso" : r.status === "completed" ? "Concluída" : r.status}
+                </Pill>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate">{profileMap[r.user_id] ?? "—"}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {new Date(r.started_at).toLocaleString()} • {r.checkpoints_done}/{r.checkpoints_total} pontos
+                  </div>
+                </div>
+              </li>
+            ))}
+            {(data?.rounds ?? []).length === 0 && (
+              <li className="py-6 text-center text-sm text-muted-foreground">{t("common.empty")}</li>
+            )}
+          </ul>
         </div>
-        <ul className="divide-y divide-border/60">
-          {(data?.occurrences ?? []).slice(0, 8).map((o) => (
-            <li key={o.id} className="py-2.5 flex items-center gap-3">
-              <StatusDot status={o.status} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm truncate">{o.title}</div>
-                <div className="text-[11px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</div>
-              </div>
-              <Pill tone={o.severity === "critical" || o.severity === "high" ? "danger" : o.severity === "medium" ? "warn" : "default"}>
-                {o.severity}
-              </Pill>
-            </li>
-          ))}
-          {(data?.occurrences ?? []).length === 0 && (
-            <li className="py-6 text-center text-sm text-muted-foreground">{t("common.empty")}</li>
-          )}
-        </ul>
+
+        <div className="glass rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="h-4 w-4 text-primary" />{t("dash.activity")}</h3>
+          </div>
+          <ul className="divide-y divide-border/60">
+            {(data?.occurrences ?? []).slice(0, 8).map((o) => (
+              <li key={o.id} className="py-2.5 flex items-center gap-3">
+                <StatusDot status={o.status} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate">{o.title}</div>
+                  <div className="text-[11px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</div>
+                </div>
+                <Pill tone={o.severity === "critical" || o.severity === "high" ? "danger" : o.severity === "medium" ? "warn" : "default"}>
+                  {o.severity}
+                </Pill>
+              </li>
+            ))}
+            {(data?.occurrences ?? []).length === 0 && (
+              <li className="py-6 text-center text-sm text-muted-foreground">{t("common.empty")}</li>
+            )}
+          </ul>
+        </div>
       </div>
     </div>
   );
