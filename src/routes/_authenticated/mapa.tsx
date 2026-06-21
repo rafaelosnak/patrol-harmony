@@ -108,6 +108,47 @@ function MapPage() {
     const bounds = new g.maps.LatLngBounds();
     let has = false;
 
+    // Clients
+    if (layers.clients) {
+      (clients ?? []).forEach((c) => {
+        const lat = (c as { latitude: number | null }).latitude;
+        const lng = (c as { longitude: number | null }).longitude;
+        if (lat == null || lng == null) return;
+        const pos = { lat: Number(lat), lng: Number(lng) };
+        const m = new g.maps.Marker({
+          position: pos, map, title: c.name,
+          icon: { path: g.maps.SymbolPath.CIRCLE, scale: 7, fillColor: "#3b82f6", fillOpacity: 0.9, strokeColor: "#dbeafe", strokeWeight: 2 },
+          zIndex: 10,
+        });
+        const info = new g.maps.InfoWindow({ content: `<div style="color:#0b1220;font-family:system-ui;max-width:240px"><strong>🏢 ${escapeHtmlSafe(c.name)}</strong>${c.address ? `<br/><span style="font-size:11px">${escapeHtmlSafe(c.address)}</span>` : ""}</div>` });
+        m.addListener("click", () => info.open({ map, anchor: m }));
+        markersRef.current.push(m);
+        bounds.extend(pos); has = true;
+      });
+    }
+
+    // Live team
+    if (layers.vehicles) {
+      const cutoff = Date.now() - 10 * 60 * 1000; // last 10min = "live"
+      (team ?? []).forEach((p) => {
+        const t = p as { last_lat: number | null; last_lng: number | null; last_location_at: string | null; full_name: string; status: string };
+        if (t.last_lat == null || t.last_lng == null || !t.last_location_at) return;
+        const isLive = new Date(t.last_location_at).getTime() > cutoff;
+        const pos = { lat: Number(t.last_lat), lng: Number(t.last_lng) };
+        const color = t.status === "round" ? "#f59e0b" : isLive ? "#10b981" : "#6b7280";
+        const m = new g.maps.Marker({
+          position: pos, map, title: t.full_name,
+          icon: { path: g.maps.SymbolPath.CIRCLE, scale: 9, fillColor: color, fillOpacity: 0.95, strokeColor: "#ffffff", strokeWeight: 2 },
+          zIndex: 50,
+        });
+        const info = new g.maps.InfoWindow({ content: `<div style="color:#0b1220;font-family:system-ui"><strong>👮 ${escapeHtmlSafe(t.full_name)}</strong><br/><span style="font-size:11px">${t.status} • atualizado ${new Date(t.last_location_at).toLocaleTimeString()}</span></div>` });
+        m.addListener("click", () => info.open({ map, anchor: m }));
+        markersRef.current.push(m);
+        bounds.extend(pos); has = true;
+      });
+    }
+
+    // Alerts (on top)
     if (layers.alerts) {
       (alerts ?? []).forEach((a) => {
         if (a.latitude == null || a.longitude == null) return;
@@ -129,7 +170,11 @@ function MapPage() {
       map.fitBounds(bounds);
       if ((markersRef.current.length ?? 0) <= 1) map.setZoom(15);
     }
-  }, [alerts, layers]);
+  }, [alerts, clients, team, layers]);
+
+function escapeHtmlSafe(s: string) {
+  return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
 
   const activeAlerts = alerts ?? [];
   const onDuty = (team ?? []).filter((p) => p.status === "working" || p.status === "round").length;
