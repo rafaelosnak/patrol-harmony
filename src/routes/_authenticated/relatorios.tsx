@@ -342,10 +342,20 @@ function ReportPreviewDialog({
     if (!report) return;
     const headers = report.cols.map((c) => c.label);
     const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const csv = [headers.map(escape).join(",")]
-      .concat(tableRows.map((r) => r.map(escape).join(",")))
-      .join("\n");
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const lines: string[] = [];
+    if (company) {
+      lines.push(`"Empresa","${(company.name ?? "").replace(/"/g, '""')}"`);
+      if (company.cnpj) lines.push(`"CNPJ","${company.cnpj.replace(/"/g, '""')}"`);
+      if (company.contact_email) lines.push(`"E-mail","${company.contact_email.replace(/"/g, '""')}"`);
+      if (company.contact_phone) lines.push(`"Telefone","${company.contact_phone.replace(/"/g, '""')}"`);
+      lines.push("");
+    }
+    lines.push(`"Relatório","${report.name}"`);
+    lines.push(`"Gerado em","${new Date().toLocaleString("pt-BR")}"`);
+    lines.push("");
+    lines.push(headers.map(escape).join(","));
+    tableRows.forEach((r) => lines.push(r.map(escape).join(",")));
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -353,6 +363,7 @@ function ReportPreviewDialog({
     a.click();
     URL.revokeObjectURL(url);
   };
+
 
   return (
     <Dialog open={!!report} onOpenChange={(o) => !o && onClose()}>
