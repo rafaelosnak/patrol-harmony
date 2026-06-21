@@ -43,9 +43,7 @@ type Row = {
 
 const ROLES: { value: AppRole; label: string }[] = [
   { value: "admin", label: "Administrador" },
-  { value: "coordenador", label: "Coordenador" },
-  { value: "supervisor", label: "Supervisor (privilégios de admin)" },
-  { value: "central", label: "Central" },
+  { value: "supervisor", label: "Supervisor (mesmos acessos do admin)" },
   { value: "vigia", label: "Vigia" },
 ];
 
