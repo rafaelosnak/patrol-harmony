@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -29,8 +30,18 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthedLayout() {
   const { t, lang, setLang } = useI18n();
-  const { profile, roles } = useAuth();
+  const { profile, roles, isSuperAdmin, companyId } = useAuth();
   const navigate = useNavigate();
+
+  // Check company status (block if suspended/overdue, unless super admin)
+  const { data: companyStatus } = useQuery({
+    queryKey: ["my-company-status", companyId],
+    enabled: !!companyId && !isSuperAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("status,name").eq("id", companyId!).maybeSingle();
+      return data as { status: string; name: string } | null;
+    },
+  });
 
   const signOut = async () => {
     await supabase.auth.signOut();
