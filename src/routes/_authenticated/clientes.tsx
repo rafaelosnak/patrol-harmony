@@ -163,23 +163,27 @@ function ClientsPage() {
                 <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{c.address ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-right">
-                  {c.address && (
-                    <div className="inline-flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setPreviewClient(c)} title="Ver no mapa">
-                        <MapPin className="h-3 w-3" />
-                      </Button>
-                      <a href={gmapsUrl(c.address)} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="ghost" title="Google Maps">
-                          <ExternalLink className="h-3 w-3" />
+                  <div className="inline-flex gap-1">
+                    {c.address && (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => setPreviewClient(c)} title="Ver no mapa">
+                          <MapPin className="h-3 w-3" />
                         </Button>
-                      </a>
-                      <a href={wazeUrl(c.address)} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="ghost" title="Waze">
-                          <Navigation className="h-3 w-3" />
-                        </Button>
-                      </a>
-                    </div>
-                  )}
+                        <a href={gmapsUrl(c.address)} target="_blank" rel="noreferrer">
+                          <Button size="sm" variant="ghost" title="Google Maps">
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </a>
+                        <a href={wazeUrl(c.address)} target="_blank" rel="noreferrer">
+                          <Button size="sm" variant="ghost" title="Waze">
+                            <Navigation className="h-3 w-3" />
+                          </Button>
+                        </a>
+                      </>
+                    )}
+                    {canWrite && <Button size="sm" variant="ghost" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-3 w-3" /></Button>}
+                    {canDelete && <Button size="sm" variant="ghost" onClick={() => { if (confirm("Excluir cliente?")) del.mutate(c.id); }} title="Excluir"><Trash2 className="h-3 w-3" /></Button>}
+                  </div>
                 </td>
               </tr>
             ))}
