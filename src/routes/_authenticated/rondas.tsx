@@ -78,6 +78,8 @@ function RoundsPage() {
   const [openLocations, setOpenLocations] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [startVehicleId, setStartVehicleId] = useState<string>("");
+  const [startTotal, setStartTotal] = useState<number>(6);
+  const [startTrajeto, setStartTrajeto] = useState<string>("");
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
   const { data: rounds, isLoading } = useQuery({
