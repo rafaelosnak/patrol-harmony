@@ -45,6 +45,7 @@ function ClientsPage() {
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState({ name: "", document: "", contact: "", address: "" });
   const [previewClient, setPreviewClient] = useState<Client | null>(null);
+  const geocodeFn = useServerFn(geocodeClient);
 
   const { data, isLoading } = useQuery<Client[]>({
     queryKey: ["clients"],
