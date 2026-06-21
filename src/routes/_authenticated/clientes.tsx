@@ -132,8 +132,8 @@ function ClientsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-                <Button onClick={() => create.mutate()} disabled={!form.name || create.isPending}>{t("common.create")}</Button>
+                <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>{t("common.cancel")}</Button>
+                <Button onClick={() => save.mutate()} disabled={!form.name || save.isPending}>{editing ? "Salvar" : t("common.create")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
