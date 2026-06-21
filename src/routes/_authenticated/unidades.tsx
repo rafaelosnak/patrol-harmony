@@ -111,6 +111,15 @@ function UnitsPage() {
                   <div className="font-semibold truncate">{u.name}</div>
                   <div className="text-xs text-muted-foreground truncate">{client?.name ?? "—"}</div>
                   <div className="text-xs text-muted-foreground mt-1 truncate">{u.address ?? "—"}</div>
+                  {u.phone && (
+                    <a
+                      href={`https://wa.me/${u.phone.replace(/\D/g, "")}`}
+                      target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-status-working mt-1 hover:underline"
+                    >
+                      <Phone className="h-3 w-3" /> {u.phone}
+                    </a>
+                  )}
                 </div>
                 {canWrite && (
                   <div className="flex flex-col gap-1">
