@@ -7,6 +7,8 @@ import { useI18n } from "@/lib/i18n";
 import { PageHeader } from "@/components/pg/ui";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   head: () => ({ meta: [{ title: "Relatórios — PhytonGuard" }] }),
@@ -177,6 +179,18 @@ function ReportsPage() {
 function ReportPreviewDialog({
   report, onClose,
 }: { report: ReportDef | null; onClose: () => void }) {
+  const [employeeFilter, setEmployeeFilter] = useState<string>("__all__");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+
+  const { data: employees } = useQuery({
+    queryKey: ["report-employees"],
+    enabled: !!report?.needsProfiles,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id,full_name").order("full_name");
+      return (data ?? []) as { id: string; full_name: string }[];
+    },
+  });
   const { data, isLoading, error } = useQuery({
     queryKey: ["report-data", report?.key],
     enabled: !!report,
@@ -221,10 +235,33 @@ function ReportPreviewDialog({
     },
   });
 
+  const filteredRows = useMemo(() => {
+    if (!report || !data) return [] as Row[];
+    const dateField =
+      report.key === "presenca" ? "punched_at"
+      : report.key === "rondas" ? "started_at"
+      : report.key === "ocorrencias" || report.key === "alertas" ? "created_at"
+      : report.key === "escalas" ? "start_at"
+      : null;
+    const fromTs = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
+    const toTs = toDate ? new Date(toDate + "T23:59:59").getTime() : null;
+    return data.rows.filter((row) => {
+      if (report.needsProfiles && employeeFilter !== "__all__" && row.user_id !== employeeFilter) return false;
+      if (dateField && (fromTs || toTs)) {
+        const v = row[dateField];
+        if (!v) return false;
+        const t = new Date(v as string).getTime();
+        if (fromTs && t < fromTs) return false;
+        if (toTs && t > toTs) return false;
+      }
+      return true;
+    });
+  }, [report, data, employeeFilter, fromDate, toDate]);
+
   const tableRows = useMemo(() => {
-    if (!report || !data) return [] as string[][];
-    return data.rows.map((row) => report.cols.map((c) => c.render(row, data.ctx)));
-  }, [report, data]);
+    if (!report) return [] as string[][];
+    return filteredRows.map((row) => report.cols.map((c) => c.render(row, data!.ctx)));
+  }, [report, data, filteredRows]);
 
   const printReport = () => {
     if (!report) return;
@@ -275,6 +312,36 @@ function ReportPreviewDialog({
             Visualização prévia. Você pode imprimir ou exportar para CSV (Excel).
           </DialogDescription>
         </DialogHeader>
+
+        {(report?.needsProfiles || report?.key === "presenca") && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+            {report?.needsProfiles && (
+              <div>
+                <Label className="text-xs">Funcionário</Label>
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos</SelectItem>
+                    {(employees ?? []).map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label className="text-xs">De</Label>
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Até</Label>
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" />
+            </div>
+          </div>
+        )}
+
 
         <div className="max-h-[60vh] overflow-auto rounded-md border border-border/60">
           {isLoading ? (
