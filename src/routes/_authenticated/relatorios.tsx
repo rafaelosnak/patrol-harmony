@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 
 type Row = Record<string, unknown>;
 type ColDef = { label: string; render: (r: Row, ctx: Ctx) => string };
-type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string> };
+type Ctx = { profiles: Record<string, string>; units: Record<string, string>; vehicles: Record<string, string>; checkpoints: Record<string, string[]> };
 
 type ReportKey = "rondas" | "ocorrencias" | "alertas" | "escalas" | "viaturas" | "presenca";
 
@@ -47,6 +47,7 @@ const REPORTS: ReportDef[] = [
       { label: "Viatura", render: (r, c) => c.vehicles[r.vehicle_id as string] ?? "—" },
       { label: "Status", render: (r) => str(r.status) },
       { label: "Pontos", render: (r) => `${r.checkpoints_done ?? 0}/${r.checkpoints_total ?? 0}` },
+      { label: "Pontos visitados", render: (r, c) => (c.checkpoints[r.id as string] ?? []).join(" • ") || "—" },
     ],
   },
   {
@@ -197,10 +198,24 @@ function ReportPreviewDialog({
         vehicleIds.length ? supabase.from("vehicles").select("id,plate,model").in("id", vehicleIds) : Promise.resolve({ data: [] as { id: string; plate: string; model: string | null }[] }),
       ]);
 
-      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {} };
+      const ctx: Ctx = { profiles: {}, units: {}, vehicles: {}, checkpoints: {} };
       ((pp as { data: { id: string; full_name: string }[] | null }).data ?? []).forEach((p) => { ctx.profiles[p.id] = p.full_name ?? "—"; });
       ((uu as { data: { id: string; name: string }[] | null }).data ?? []).forEach((u) => { ctx.units[u.id] = u.name ?? "—"; });
       ((vv as { data: { id: string; plate: string; model: string | null }[] | null }).data ?? []).forEach((v) => { ctx.vehicles[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
+
+      if (r.key === "rondas" && rows.length > 0) {
+        const ids = rows.map((x) => x.id as string).filter(Boolean);
+        const { data: cps } = await supabase
+          .from("round_checkpoints")
+          .select("round_id,label,created_at")
+          .in("round_id", ids)
+          .order("created_at", { ascending: true });
+        (cps ?? []).forEach((c) => {
+          const rid = c.round_id as string;
+          const arr = ctx.checkpoints[rid] ?? (ctx.checkpoints[rid] = []);
+          arr.push((c.label as string | null) ?? "Ponto");
+        });
+      }
 
       return { rows, ctx };
     },
