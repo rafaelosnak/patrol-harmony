@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
-  Users, Footprints, AlertOctagon, Siren, Timer, CheckCircle2, Radio,
+  Users, Footprints, AlertOctagon, Siren, Timer, CheckCircle2, Radio, UserCheck,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip, CartesianGrid,
@@ -26,17 +26,20 @@ function Dashboard() {
   const { data } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
-      const [profiles, rounds, occ, alerts] = await Promise.all([
+      const nowIso = new Date().toISOString();
+      const [profiles, rounds, occ, alerts, shifts] = await Promise.all([
         supabase.from("profiles").select("id,status,full_name,created_at").limit(200),
         supabase.from("rounds").select("id,user_id,vehicle_id,status,started_at,finished_at,checkpoints_done,checkpoints_total").gte("started_at", new Date(Date.now() - 7 * 86400000).toISOString()).order("started_at", { ascending: false }),
         supabase.from("occurrences").select("id,status,severity,title,created_at").order("created_at", { ascending: false }).limit(50),
         supabase.from("alerts").select("id,status,alert_type,created_at").eq("status", "active"),
+        supabase.from("shifts").select("id,user_id,unit_id,shift_type,start_at,end_at,status, profiles!shifts_user_id_fkey(full_name), units(name)").lte("start_at", nowIso).gte("end_at", nowIso),
       ]);
       return {
         profiles: profiles.data ?? [],
         rounds: rounds.data ?? [],
         occurrences: occ.data ?? [],
         alerts: alerts.data ?? [],
+        shifts: shifts.data ?? [],
       };
     },
     refetchInterval: 15000,
@@ -148,6 +151,40 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
+      </div>
+
+      <div className="glass rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-primary" />
+            Plantonistas agora
+          </h3>
+          <span className="text-[11px] text-muted-foreground font-mono">{now.toLocaleString("pt-BR")}</span>
+        </div>
+        {(data?.shifts ?? []).length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">Nenhum plantonista no momento.</p>
+        ) : (
+          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {(data?.shifts ?? []).map((s) => {
+              const profile = (s as unknown as { profiles?: { full_name?: string } }).profiles;
+              const unit = (s as unknown as { units?: { name?: string } }).units;
+              return (
+                <li key={s.id} className="rounded-lg border border-border/60 bg-card/40 p-3 flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-primary/15 grid place-items-center text-primary text-xs font-semibold">
+                    {(profile?.full_name ?? "—").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{profile?.full_name ?? "—"}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {unit?.name ? `${unit.name} • ` : ""}{s.shift_type} • até {new Date(s.end_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <Pill tone="success">no turno</Pill>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
