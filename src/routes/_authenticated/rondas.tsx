@@ -383,7 +383,7 @@ function CheckpointsDialog({
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum ponto registrado ainda.</p>
           )}
           {(checkpoints ?? []).map((c, i) => (
-            <CheckpointItem key={c.id} idx={i} c={c} />
+            <CheckpointItem key={c.id} idx={i} c={c} canEdit={!!canEditLabel} roundId={round?.id} />
           ))}
         </div>
 
