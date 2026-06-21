@@ -172,9 +172,6 @@ function MapPage() {
     }
   }, [alerts, clients, team, layers]);
 
-function escapeHtmlSafe(s: string) {
-  return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-}
 
   const activeAlerts = alerts ?? [];
   const onDuty = (team ?? []).filter((p) => p.status === "working" || p.status === "round").length;
