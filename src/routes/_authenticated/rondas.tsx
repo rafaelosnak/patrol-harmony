@@ -203,7 +203,23 @@ function RoundsPage() {
                         <Square className="h-3 w-3" /> {t("rounds.finish")}
                       </Button>
                     )}
+                    {isStaff && inProg && (
+                      <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)} title="Finalizar (admin)">
+                        <Square className="h-3 w-3" />
+                      </Button>
+                    )}
+                    {isStaff && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => { if (confirm("Excluir esta ronda e todos os pontos?")) remove.mutate(r.id); }}
+                        title="Excluir ronda"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                   </td>
+
                 </tr>
               );
             })}
