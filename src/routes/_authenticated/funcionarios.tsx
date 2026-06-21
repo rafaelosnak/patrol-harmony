@@ -60,8 +60,10 @@ const emptyProfile: EmployeeProfileInput = {
 function EmployeesPage() {
   const { hasRole, user } = useAuth();
   const isStaff = hasRole("admin") || hasRole("supervisor");
-  const isAdmin = isStaff; // admin e supervisor têm os mesmos privilégios
+  const isAdmin = isStaff;
   const [rows, setRows] = useState<Row[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -71,19 +73,29 @@ function EmployeesPage() {
   const remove = useServerFn(deleteEmployee);
   const updateRole = useServerFn(updateEmployeeRole);
 
-  const [form, setForm] = useState<EmployeeProfileInput & { email: string; password: string; role: AppRole }>({
-    ...emptyProfile, email: "", password: "", role: "vigia",
+  const [form, setForm] = useState<EmployeeProfileInput & { email: string; password: string; role: AppRole; client_ids: string[] }>({
+    ...emptyProfile, email: "", password: "", role: "vigia", client_ids: [],
   });
-  const [editForm, setEditForm] = useState<EmployeeProfileInput>(emptyProfile);
+  const [editForm, setEditForm] = useState<EmployeeProfileInput & { client_ids: string[] }>({ ...emptyProfile, client_ids: [] });
   const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from("profiles").select("*");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const [{ data: profiles }, { data: roles }, { data: cls }, { data: ces }] = await Promise.all([
+      supabase.from("profiles").select("*"),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("clients").select("id,name").order("name"),
+      supabase.from("client_employees").select("user_id,client_id"),
+    ]);
     const roleMap = new Map<string, AppRole>();
     (roles ?? []).forEach((r) => roleMap.set(r.user_id, r.role as AppRole));
     setRows(((profiles ?? []) as Omit<Row, "role">[]).map((p) => ({ ...p, role: roleMap.get(p.id) ?? null })));
+    setClients((cls ?? []) as { id: string; name: string }[]);
+    const map: Record<string, string[]> = {};
+    ((ces ?? []) as { user_id: string; client_id: string }[]).forEach((r) => {
+      (map[r.user_id] ||= []).push(r.client_id);
+    });
+    setAssignments(map);
     setLoading(false);
   };
 
