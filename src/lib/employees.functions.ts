@@ -21,9 +21,23 @@ export interface EmployeeProfileInput {
   avatar_url?: string | null;
 }
 
+async function syncClientAssignments(
+  supabaseAdmin: { from: (t: string) => { delete: () => { eq: (c: string, v: string) => Promise<unknown> }; insert: (rows: unknown[]) => Promise<{ error: { message: string } | null }> } },
+  userId: string,
+  companyId: string | null,
+  clientIds: string[] | undefined,
+) {
+  if (!clientIds) return;
+  await supabaseAdmin.from("client_employees").delete().eq("user_id", userId);
+  if (clientIds.length === 0 || !companyId) return;
+  const rows = clientIds.map((cid) => ({ user_id: userId, client_id: cid, company_id: companyId }));
+  const { error } = await supabaseAdmin.from("client_employees").insert(rows);
+  if (error) throw new Error(error.message);
+}
+
 export const createEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string; password: string; role: AppRole } & EmployeeProfileInput) => {
+  .inputValidator((input: { email: string; password: string; role: AppRole; client_ids?: string[] } & EmployeeProfileInput) => {
     if (!input.email || !input.password || !input.full_name || !input.role) {
       throw new Error("Campos obrigatórios faltando");
     }
