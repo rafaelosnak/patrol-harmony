@@ -149,6 +149,19 @@ function RoundsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from("round_checkpoints").delete().eq("round_id", id);
+      const { error } = await supabase.from("rounds").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ronda excluída");
+      qc.invalidateQueries({ queryKey: ["rounds"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao excluir"),
+  });
+
   return (
     <div className="space-y-4">
       <PageHeader title={t("rounds.title")} subtitle={t("rounds.subtitle")} actions={
