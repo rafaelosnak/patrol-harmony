@@ -227,7 +227,14 @@ function RoundsPage() {
                   <td className="px-4 py-3 font-medium">{names?.[r.user_id] ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(r.started_at).toLocaleString()}</td>
                   <td className="px-4 py-3 text-xs">{r.vehicle_id ? (vehicleMap[r.vehicle_id] ?? "—") : <span className="text-muted-foreground">—</span>}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{r.checkpoints_done}/{r.checkpoints_total}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    <div>{r.checkpoints_done}/{r.checkpoints_total}</div>
+                    {(roundLabels?.[r.id]?.length ?? 0) > 0 && (
+                      <div className="font-sans text-[11px] text-muted-foreground mt-1 max-w-[280px] truncate" title={roundLabels![r.id].join(" • ")}>
+                        {roundLabels![r.id].join(" • ")}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <Pill tone={inProg ? "warn" : r.status === "completed" ? "success" : "default"}>
                       {inProg ? t("rounds.inprogress") : r.status === "completed" ? t("rounds.completed") : r.status}
