@@ -313,6 +313,36 @@ function ReportPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {(report?.needsProfiles || report?.key === "presenca") && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+            {report?.needsProfiles && (
+              <div>
+                <Label className="text-xs">Funcionário</Label>
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todos</SelectItem>
+                    {(employees ?? []).map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label className="text-xs">De</Label>
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Até</Label>
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" />
+            </div>
+          </div>
+        )}
+
+
         <div className="max-h-[60vh] overflow-auto rounded-md border border-border/60">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
