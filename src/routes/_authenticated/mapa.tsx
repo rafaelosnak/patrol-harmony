@@ -384,3 +384,7 @@ function SidePanel({ icon, title, count, empty, children }: { icon: React.ReactN
     </div>
   );
 }
+
+function escapeHtmlSafe(s: string) {
+  return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
