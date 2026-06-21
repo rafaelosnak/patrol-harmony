@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin } from "lucide-react";
+import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   component: PontoPage,
@@ -173,6 +174,7 @@ function PontoPage() {
                   <th className="text-left p-3">Funcionário</th>
                   <th className="text-left p-3">Tipo</th>
                   <th className="text-left p-3">Local</th>
+                  {isStaff && <th className="text-right p-3">Ações</th>}
                 </tr>
               </thead>
               <tbody>
@@ -180,24 +182,14 @@ function PontoPage() {
                   const s = STEPS.find((x) => x.type === e.punch_type)!;
                   const who = names[e.user_id] ?? (e.user_id === user?.id ? "Você" : "—");
                   return (
-                    <tr key={e.id} className="border-t border-border/40">
-                      <td className="p-3">{fmtDate(e.punched_at)}</td>
-                      <td className="p-3 font-mono">{fmtTime(e.punched_at)}</td>
-                      <td className="p-3 font-medium">{who}</td>
-                      <td className="p-3"><Badge variant="outline" className={s.color}>{s.label}</Badge></td>
-                      <td className="p-3 text-xs text-muted-foreground">
-                        {e.latitude != null ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${e.latitude},${e.longitude}`}
-                            target="_blank" rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-primary hover:underline"
-                          >
-                            <MapPin className="h-3 w-3" />
-                            {e.latitude.toFixed(4)}, {e.longitude!.toFixed(4)}
-                          </a>
-                        ) : "—"}
-                      </td>
-                    </tr>
+                    <EntryRow
+                      key={e.id}
+                      entry={e}
+                      step={s}
+                      who={who}
+                      canEdit={!!isStaff}
+                      onSaved={load}
+                    />
                   );
                 })}
               </tbody>
