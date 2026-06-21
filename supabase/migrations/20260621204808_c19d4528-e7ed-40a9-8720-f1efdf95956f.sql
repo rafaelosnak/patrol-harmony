@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.bump_round_checkpoints_done() FROM PUBLIC, anon, authenticated;
