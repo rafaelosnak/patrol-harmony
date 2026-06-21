@@ -37,8 +37,10 @@ function ClientsPage() {
   const { t } = useI18n();
   const { hasRole } = useAuth();
   const canWrite = hasRole("admin") || hasRole("supervisor");
+  const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState({ name: "", document: "", contact: "", address: "" });
   const [previewClient, setPreviewClient] = useState<Client | null>(null);
 
@@ -47,24 +49,44 @@ function ClientsPage() {
     queryFn: async () => ((await supabase.from("clients").select("*").order("created_at", { ascending: false })).data ?? []) as Client[],
   });
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("clients").insert({
+      const payload = {
         name: form.name,
         document: form.document || null,
         contact: form.contact || null,
         address: form.address || null,
-      });
-      if (error) throw error;
+      };
+      if (editing) {
+        const { error } = await supabase.from("clients").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("clients").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Cliente cadastrado");
+      toast.success(editing ? "Cliente atualizado" : "Cliente cadastrado");
       qc.invalidateQueries({ queryKey: ["clients"] });
-      setOpen(false);
+      setOpen(false); setEditing(null);
       setForm({ name: "", document: "", contact: "", address: "" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("clients").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => { toast.success("Cliente removido"); qc.invalidateQueries({ queryKey: ["clients"] }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
+  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "" }); setOpen(true); };
+  const openEdit = (c: Client) => {
+    setEditing(c);
+    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "" });
+    setOpen(true);
+  };
+
 
   return (
     <div className="space-y-4">
