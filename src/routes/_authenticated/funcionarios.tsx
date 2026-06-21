@@ -111,9 +111,10 @@ function EmployeesPage() {
         address_city: editing.address_city ?? "", address_state: editing.address_state ?? "",
         address_zip: editing.address_zip ?? "", notes: editing.notes ?? "",
         avatar_url: editing.avatar_url ?? "",
+        client_ids: assignments[editing.id] ?? [],
       });
     }
-  }, [editing]);
+  }, [editing, assignments]);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +122,7 @@ function EmployeesPage() {
     try {
       await create({ data: form });
       toast.success("Funcionário cadastrado");
-      setForm({ ...emptyProfile, email: "", password: "", role: "vigia" });
+      setForm({ ...emptyProfile, email: "", password: "", role: "vigia", client_ids: [] });
       setOpenNew(false);
       load();
     } catch (err) {
