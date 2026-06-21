@@ -190,6 +190,11 @@ function EmployeesPage() {
                     </Select>
                   </div>
                 </div>
+                <ClientPicker
+                  clients={clients}
+                  value={form.client_ids}
+                  onChange={(ids) => setForm({ ...form, client_ids: ids })}
+                />
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setOpenNew(false)}>Cancelar</Button>
                   <Button type="submit" disabled={submitting}>
@@ -211,14 +216,15 @@ function EmployeesPage() {
               <TableHead>E-mail</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Função</TableHead>
+              <TableHead>Clientes</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
             ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum funcionário ainda.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum funcionário ainda.</TableCell></TableRow>
             ) : rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.full_name}</TableCell>
@@ -234,6 +240,19 @@ function EmployeesPage() {
                       </SelectContent>
                     </Select>
                   ) : <Badge variant="outline">{r.role ?? "—"}</Badge>}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                  {(() => {
+                    const ids = assignments[r.id] ?? [];
+                    if (ids.length === 0) return "—";
+                    const names = ids.map((id) => clients.find((c) => c.id === id)?.name).filter(Boolean) as string[];
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {names.slice(0, 3).map((n) => <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>)}
+                        {names.length > 3 && <span className="text-[10px]">+{names.length - 3}</span>}
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
