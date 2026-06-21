@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type AppRole = "admin" | "coordenador" | "supervisor" | "central" | "vigia";
+type AppRole = "admin" | "supervisor" | "vigia";
 
 export interface EmployeeProfileInput {
   full_name: string;
@@ -30,8 +30,8 @@ export const createEmployee = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Apenas administradores podem cadastrar funcionários");
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores ou supervisores podem cadastrar funcionários");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -103,8 +103,8 @@ export const updateEmployeeRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { user_id: string; role: AppRole }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Apenas administradores podem alterar papéis");
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores ou supervisores podem alterar papéis");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
     const { error } = await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
@@ -116,8 +116,8 @@ export const deleteEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { user_id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Apenas administradores podem remover funcionários");
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores ou supervisores podem remover funcionários");
     if (data.user_id === context.userId) throw new Error("Você não pode remover a si mesmo");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
