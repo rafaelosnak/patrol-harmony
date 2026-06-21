@@ -253,8 +253,8 @@ function RoundsPage() {
 }
 
 function CheckpointsDialog({
-  round, onClose, currentUserId,
-}: { round: RoundRow | null; onClose: () => void; currentUserId?: string }) {
+  round, onClose, currentUserId, canEditLabel,
+}: { round: RoundRow | null; onClose: () => void; currentUserId?: string; canEditLabel?: boolean }) {
   const qc = useQueryClient();
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
