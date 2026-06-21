@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Languages, ShieldAlert } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
+import { useLiveLocation } from "@/hooks/use-live-location";
 import { toast } from "sonner";
 import {
   DropdownMenu,
