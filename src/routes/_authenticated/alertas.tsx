@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Siren, ShieldAlert, Wrench, HeartPulse, Check } from "lucide-react";
+import { Siren, ShieldAlert, Wrench, HeartPulse, Check, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/alertas")({
   head: () => ({ meta: [{ title: "Alertas — PhytonGuard" }] }),
