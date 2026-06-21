@@ -31,9 +31,15 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthedLayout() {
   const { t, lang, setLang } = useI18n();
-  const { profile, roles, isSuperAdmin, companyId } = useAuth();
+  const { profile, roles, isSuperAdmin, companyId, user } = useAuth();
   const navigate = useNavigate();
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+
+  // Live GPS tracking for on-duty users (vigia/supervisor in serviço/ronda)
+  useLiveLocation({
+    userId: user?.id,
+    enabled: !isSuperAdmin && (profile?.status === "working" || profile?.status === "round"),
+  });
 
   useEffect(() => {
     if (isSuperAdmin && !pathname.startsWith("/super-admin")) {
