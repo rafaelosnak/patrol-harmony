@@ -132,6 +132,7 @@ function TeamsPage() {
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="central">Central de Apoio</SelectItem>
                   <SelectItem value="vigia">Vigia</SelectItem>
                 </SelectContent>
               </Select>
