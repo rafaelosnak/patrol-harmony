@@ -96,6 +96,15 @@ function AuthedLayout() {
             </div>
 
             <div className="ml-auto flex items-center gap-1">
+              <a
+                href="https://wa.me/5514910044864"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Suporte via WhatsApp"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Phone className="h-4 w-4" />
+              </a>
               <NotificationBell />
 
               <DropdownMenu>
