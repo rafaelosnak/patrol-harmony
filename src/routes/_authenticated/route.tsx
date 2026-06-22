@@ -53,10 +53,16 @@ function AuthedLayout() {
     queryKey: ["my-company-status", companyId],
     enabled: !!companyId && !isSuperAdmin,
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("status,name").eq("id", companyId!).maybeSingle();
-      return data as { status: string; name: string } | null;
+      const { data } = await supabase.from("companies").select("status,name,created_at").eq("id", companyId!).maybeSingle();
+      return data as { status: string; name: string; created_at: string } | null;
     },
   });
+
+  const activationDays = companyStatus?.created_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(companyStatus.created_at).getTime()) / 86400000))
+    : null;
+  const SUPPORT_PHONE = "14910044864";
+  const SUPPORT_PHONE_FMT = "(14) 91004-4864";
 
   const signOut = async () => {
     await supabase.auth.signOut();
