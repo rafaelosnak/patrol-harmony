@@ -293,9 +293,11 @@ export type Database = {
           due_date: string | null
           id: string
           last_payment_at: string | null
+          max_users: number
           monthly_fee: number
           name: string
           notes: string | null
+          plan: Database["public"]["Enums"]["company_plan"]
           status: string
           updated_at: string
         }
@@ -309,9 +311,11 @@ export type Database = {
           due_date?: string | null
           id?: string
           last_payment_at?: string | null
+          max_users?: number
           monthly_fee?: number
           name: string
           notes?: string | null
+          plan?: Database["public"]["Enums"]["company_plan"]
           status?: string
           updated_at?: string
         }
@@ -325,9 +329,11 @@ export type Database = {
           due_date?: string | null
           id?: string
           last_payment_at?: string | null
+          max_users?: number
           monthly_fee?: number
           name?: string
           notes?: string | null
+          plan?: Database["public"]["Enums"]["company_plan"]
           status?: string
           updated_at?: string
         }
@@ -868,7 +874,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      company_can_add_user: { Args: { _company_id: string }; Returns: boolean }
       company_is_active: { Args: { _company_id: string }; Returns: boolean }
+      company_user_count: { Args: { _company_id: string }; Returns: number }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -888,6 +896,7 @@ export type Database = {
         | "central"
         | "vigia"
         | "super_admin"
+      company_plan: "starter" | "pro" | "business" | "enterprise"
       punch_type: "entrada" | "almoco_saida" | "almoco_volta" | "saida"
     }
     CompositeTypes: {
@@ -1024,6 +1033,7 @@ export const Constants = {
         "vigia",
         "super_admin",
       ],
+      company_plan: ["starter", "pro", "business", "enterprise"],
       punch_type: ["entrada", "almoco_saida", "almoco_volta", "saida"],
     },
   },
