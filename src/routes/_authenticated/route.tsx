@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Languages, ShieldAlert } from "lucide-react";
+import { LogOut, Languages, ShieldAlert, Phone } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
 import { useLiveLocation } from "@/hooks/use-live-location";
 import { toast } from "sonner";
