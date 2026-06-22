@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Languages, ShieldAlert } from "lucide-react";
+import { LogOut, Languages, ShieldAlert, Phone } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
 import { useLiveLocation } from "@/hooks/use-live-location";
 import { toast } from "sonner";
@@ -96,6 +96,15 @@ function AuthedLayout() {
             </div>
 
             <div className="ml-auto flex items-center gap-1">
+              <a
+                href="https://wa.me/5514910044864"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Suporte via WhatsApp"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <Phone className="h-4 w-4" />
+              </a>
               <NotificationBell />
 
               <DropdownMenu>

@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Users, Footprints, AlertOctagon, Siren,
   CalendarClock, Truck, Megaphone, Building2, BarChart3, Settings, ShieldAlert,
-  UserCog, Clock, MessageCircle, Crown,
+  UserCog, Clock, MessageCircle, Crown, Phone,
 } from "lucide-react";
 
 import {
@@ -20,7 +20,7 @@ export function AppSidebar() {
   const { t } = useI18n();
   const { isStaff, isSuperAdmin } = useAuth();
 
-  const groups: { label: string; items: { title: string; url: string; icon: typeof Map }[] }[] = isSuperAdmin
+  const groups: { label: string; items: { title: string; url: string; icon: typeof Map; external?: boolean }[] }[] = isSuperAdmin
     ? [{
         label: "Super Admin",
         items: [{ title: "Empresas", url: "/super-admin", icon: Crown }],
@@ -54,6 +54,7 @@ export function AppSidebar() {
           items: [
             ...(isStaff ? [{ title: t("nav.reports"), url: "/relatorios", icon: BarChart3 }] : []),
             { title: t("nav.settings"), url: "/configuracoes", icon: Settings },
+            { title: "Suporte", url: "https://wa.me/5514910044864", icon: Phone, external: true },
           ],
         },
       ];
@@ -82,11 +83,18 @@ export function AppSidebar() {
               <SidebarMenu>
                 {g.items.map((item) => (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                      <Link to={item.url} className="flex items-center gap-2.5">
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span className="truncate">{item.title}</span>}
-                      </Link>
+                    <SidebarMenuButton asChild isActive={!item.external && isActive(item.url)} tooltip={item.title}>
+                      {item.external ? (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5">
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span className="truncate">{item.title}</span>}
+                        </a>
+                      ) : (
+                        <Link to={item.url} className="flex items-center gap-2.5">
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span className="truncate">{item.title}</span>}
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
