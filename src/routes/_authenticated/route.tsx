@@ -61,9 +61,6 @@ function AuthedLayout() {
   const activationDays = companyStatus?.created_at
     ? Math.max(0, Math.floor((Date.now() - new Date(companyStatus.created_at).getTime()) / 86400000))
     : null;
-  const daysToDue = companyStatus?.due_date
-    ? Math.ceil((new Date(companyStatus.due_date + "T23:59:59").getTime() - Date.now()) / 86400000)
-    : null;
   const SUPPORT_PHONE = "14910044864";
   const SUPPORT_PHONE_FMT = "(14) 91004-4864";
 
