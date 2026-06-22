@@ -26,6 +26,15 @@ export const Route = createFileRoute("/_authenticated/super-admin")({
 });
 
 type Status = "active" | "suspended" | "overdue";
+type Plan = "starter" | "pro" | "business" | "enterprise";
+
+const PLANS: Record<Plan, { label: string; fee: number; users: number; desc: string }> = {
+  starter:    { label: "Starter",    fee: 299,  users: 5,   desc: "1 posto / equipe enxuta" },
+  pro:        { label: "Pro",        fee: 599,  users: 15,  desc: "2–4 postos (mais usado)" },
+  business:   { label: "Business",   fee: 1199, users: 40,  desc: "Múltiplos postos" },
+  enterprise: { label: "Enterprise", fee: 2499, users: 9999, desc: "Ilimitado / franquias" },
+};
+
 type Company = {
   id: string;
   name: string;
@@ -39,17 +48,21 @@ type Company = {
   due_date: string | null;
   last_payment_at: string | null;
   notes: string | null;
+  plan: Plan;
+  max_users: number;
 };
 
 type FormState = {
   name: string; cnpj: string; contact_email: string; contact_phone: string; address: string;
   status: Status; monthly_fee: number; billing_day: number; due_date: string | null; notes: string;
+  plan: Plan; max_users: number;
   admin_full_name: string; admin_email: string; admin_password: string;
 };
 
 const emptyForm: FormState = {
   name: "", cnpj: "", contact_email: "", contact_phone: "", address: "",
-  status: "active", monthly_fee: 0, billing_day: 5, due_date: null, notes: "",
+  status: "active", monthly_fee: PLANS.pro.fee, billing_day: 5, due_date: null, notes: "",
+  plan: "pro", max_users: PLANS.pro.users,
   admin_full_name: "", admin_email: "", admin_password: "",
 };
 
@@ -157,6 +170,7 @@ function SuperAdminPage() {
       contact_phone: c.contact_phone ?? "", address: c.address ?? "",
       status: c.status, monthly_fee: c.monthly_fee, billing_day: c.billing_day,
       due_date: c.due_date, notes: c.notes ?? "",
+      plan: c.plan ?? "pro", max_users: c.max_users ?? PLANS.pro.users,
       admin_full_name: "", admin_email: "", admin_password: "",
     });
     setOpen(true);
@@ -249,8 +263,32 @@ function SuperAdminPage() {
             <div><Label>E-mail de contato</Label><Input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} /></div>
             <div><Label>Telefone</Label><Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} /></div>
             <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-            <div className="grid grid-cols-3 gap-3">
+
+            <div className="rounded-lg border border-border/60 p-3 bg-muted/30 space-y-3">
+              <div className="text-xs font-semibold uppercase text-muted-foreground">Plano</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {(Object.keys(PLANS) as Plan[]).map((k) => {
+                  const p = PLANS[k];
+                  const selected = form.plan === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setForm({ ...form, plan: k, monthly_fee: p.fee, max_users: p.users })}
+                      className={`text-left rounded-lg p-2.5 border transition ${selected ? "border-primary bg-primary/10" : "border-border/60 hover:border-border"}`}
+                    >
+                      <div className="text-xs font-semibold">{p.label}</div>
+                      <div className="text-[11px] text-muted-foreground">R$ {p.fee}/mês</div>
+                      <div className="text-[11px] text-muted-foreground">{k === "enterprise" ? "Usuários ilimitados" : `até ${p.users} usuários`}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div><Label>Mensalidade (R$)</Label><Input type="number" step="0.01" value={form.monthly_fee} onChange={(e) => setForm({ ...form, monthly_fee: Number(e.target.value) })} /></div>
+              <div><Label>Limite usuários</Label><Input type="number" min={1} value={form.max_users} onChange={(e) => setForm({ ...form, max_users: Number(e.target.value) })} /></div>
               <div><Label>Dia cobrança</Label><Input type="number" min={1} max={28} value={form.billing_day} onChange={(e) => setForm({ ...form, billing_day: Number(e.target.value) })} /></div>
               <div><Label>Vencimento</Label><Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value || null })} /></div>
             </div>
@@ -305,7 +343,7 @@ function stripAdmin(f: FormState) {
   return {
     name: f.name, cnpj: f.cnpj, contact_email: f.contact_email, contact_phone: f.contact_phone,
     address: f.address, status: f.status, monthly_fee: f.monthly_fee, billing_day: f.billing_day,
-    due_date: f.due_date, notes: f.notes,
+    due_date: f.due_date, notes: f.notes, plan: f.plan, max_users: f.max_users,
   };
 }
 
@@ -326,6 +364,21 @@ function CompanyCard({
     queryKey: ["company-admins", c.id],
     queryFn: fetchAdmins,
   });
+  const { data: userCount } = useQuery({
+    queryKey: ["company-user-count", c.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", c.id);
+      return count ?? 0;
+    },
+  });
+
+  const planLabel = PLANS[c.plan]?.label ?? c.plan;
+  const unlimited = c.plan === "enterprise";
+  const used = userCount ?? 0;
+  const overLimit = !unlimited && used >= c.max_users;
 
   return (
     <div className="glass rounded-xl p-4 space-y-3">
@@ -338,6 +391,13 @@ function CompanyCard({
           {c.cnpj && <div className="text-xs text-muted-foreground mt-0.5">CNPJ: {c.cnpj}</div>}
         </div>
         {statusPill(c.status)}
+      </div>
+
+      <div className="flex items-center gap-2 text-xs">
+        <Pill tone="info">{planLabel}</Pill>
+        <span className={overLimit ? "text-destructive font-medium" : "text-muted-foreground"}>
+          👥 {used}{unlimited ? "" : ` / ${c.max_users}`} usuários{overLimit ? " — limite atingido" : ""}
+        </span>
       </div>
 
       <div className="text-xs space-y-1 text-muted-foreground">
