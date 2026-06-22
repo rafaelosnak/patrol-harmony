@@ -170,6 +170,7 @@ function SuperAdminPage() {
       contact_phone: c.contact_phone ?? "", address: c.address ?? "",
       status: c.status, monthly_fee: c.monthly_fee, billing_day: c.billing_day,
       due_date: c.due_date, notes: c.notes ?? "",
+      plan: c.plan ?? "pro", max_users: c.max_users ?? PLANS.pro.users,
       admin_full_name: "", admin_email: "", admin_password: "",
     });
     setOpen(true);
