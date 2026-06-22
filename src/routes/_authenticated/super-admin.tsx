@@ -263,8 +263,32 @@ function SuperAdminPage() {
             <div><Label>E-mail de contato</Label><Input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} /></div>
             <div><Label>Telefone</Label><Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} /></div>
             <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-            <div className="grid grid-cols-3 gap-3">
+
+            <div className="rounded-lg border border-border/60 p-3 bg-muted/30 space-y-3">
+              <div className="text-xs font-semibold uppercase text-muted-foreground">Plano</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {(Object.keys(PLANS) as Plan[]).map((k) => {
+                  const p = PLANS[k];
+                  const selected = form.plan === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setForm({ ...form, plan: k, monthly_fee: p.fee, max_users: p.users })}
+                      className={`text-left rounded-lg p-2.5 border transition ${selected ? "border-primary bg-primary/10" : "border-border/60 hover:border-border"}`}
+                    >
+                      <div className="text-xs font-semibold">{p.label}</div>
+                      <div className="text-[11px] text-muted-foreground">R$ {p.fee}/mês</div>
+                      <div className="text-[11px] text-muted-foreground">{k === "enterprise" ? "Usuários ilimitados" : `até ${p.users} usuários`}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div><Label>Mensalidade (R$)</Label><Input type="number" step="0.01" value={form.monthly_fee} onChange={(e) => setForm({ ...form, monthly_fee: Number(e.target.value) })} /></div>
+              <div><Label>Limite usuários</Label><Input type="number" min={1} value={form.max_users} onChange={(e) => setForm({ ...form, max_users: Number(e.target.value) })} /></div>
               <div><Label>Dia cobrança</Label><Input type="number" min={1} max={28} value={form.billing_day} onChange={(e) => setForm({ ...form, billing_day: Number(e.target.value) })} /></div>
               <div><Label>Vencimento</Label><Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value || null })} /></div>
             </div>
@@ -319,7 +343,7 @@ function stripAdmin(f: FormState) {
   return {
     name: f.name, cnpj: f.cnpj, contact_email: f.contact_email, contact_phone: f.contact_phone,
     address: f.address, status: f.status, monthly_fee: f.monthly_fee, billing_day: f.billing_day,
-    due_date: f.due_date, notes: f.notes,
+    due_date: f.due_date, notes: f.notes, plan: f.plan, max_users: f.max_users,
   };
 }
 
