@@ -26,6 +26,15 @@ export const Route = createFileRoute("/_authenticated/super-admin")({
 });
 
 type Status = "active" | "suspended" | "overdue";
+type Plan = "starter" | "pro" | "business" | "enterprise";
+
+const PLANS: Record<Plan, { label: string; fee: number; users: number; desc: string }> = {
+  starter:    { label: "Starter",    fee: 299,  users: 5,   desc: "1 posto / equipe enxuta" },
+  pro:        { label: "Pro",        fee: 599,  users: 15,  desc: "2–4 postos (mais usado)" },
+  business:   { label: "Business",   fee: 1199, users: 40,  desc: "Múltiplos postos" },
+  enterprise: { label: "Enterprise", fee: 2499, users: 9999, desc: "Ilimitado / franquias" },
+};
+
 type Company = {
   id: string;
   name: string;
@@ -39,17 +48,21 @@ type Company = {
   due_date: string | null;
   last_payment_at: string | null;
   notes: string | null;
+  plan: Plan;
+  max_users: number;
 };
 
 type FormState = {
   name: string; cnpj: string; contact_email: string; contact_phone: string; address: string;
   status: Status; monthly_fee: number; billing_day: number; due_date: string | null; notes: string;
+  plan: Plan; max_users: number;
   admin_full_name: string; admin_email: string; admin_password: string;
 };
 
 const emptyForm: FormState = {
   name: "", cnpj: "", contact_email: "", contact_phone: "", address: "",
-  status: "active", monthly_fee: 0, billing_day: 5, due_date: null, notes: "",
+  status: "active", monthly_fee: PLANS.pro.fee, billing_day: 5, due_date: null, notes: "",
+  plan: "pro", max_users: PLANS.pro.users,
   admin_full_name: "", admin_email: "", admin_password: "",
 };
 
