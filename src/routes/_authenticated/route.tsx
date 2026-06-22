@@ -99,14 +99,8 @@ function AuthedLayout() {
             </div>
 
             <div className="ml-auto flex items-center gap-1">
-              <Link
-                to="/suporte"
-                title="Chat de suporte"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                <Phone className="h-4 w-4" />
-              </Link>
               <NotificationBell />
+
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -176,12 +170,12 @@ function AuthedLayout() {
               </div>
             ) : (
               <>
-                {!isSuperAdmin && companyStatus?.status === "active" && activationDays !== null && (
+                {!isSuperAdmin && companyStatus?.status === "active" && (
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-status-active/30 bg-status-active/10 px-3 py-2 text-xs">
                     <span className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-status-active animate-pulse" />
-                      <strong className="text-status-active">Sistema ativo</strong>
-                      <span className="text-muted-foreground">— {companyStatus.name} · ativo há {activationDays} {activationDays === 1 ? "dia" : "dias"}</span>
+                      <strong className="text-status-active">Bem-vindo,</strong>
+                      <span className="text-foreground font-medium">{companyStatus.name}</span>
                     </span>
                     <span className="flex items-center gap-3">
                       {daysToDue !== null && (
@@ -197,12 +191,18 @@ function AuthedLayout() {
                               : `Faltam ${daysToDue} ${daysToDue === 1 ? "dia" : "dias"} para vencer`}
                         </span>
                       )}
-                      <a href={`tel:+55${SUPPORT_PHONE}`} className="text-muted-foreground hover:text-primary">
+                      <a
+                        href={`https://wa.me/55${SUPPORT_PHONE}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary"
+                      >
                         Suporte: {SUPPORT_PHONE_FMT}
                       </a>
                     </span>
                   </div>
                 )}
+
                 <Outlet />
               </>
             )}

@@ -54,7 +54,7 @@ export function AppSidebar() {
           items: [
             ...(isStaff ? [{ title: t("nav.reports"), url: "/relatorios", icon: BarChart3 }] : []),
             { title: t("nav.settings"), url: "/configuracoes", icon: Settings },
-            { title: "Suporte", url: "/suporte", icon: Phone },
+            { title: "Suporte", url: "https://wa.me/5514910044864", icon: Phone, external: true },
           ],
         },
       ];
