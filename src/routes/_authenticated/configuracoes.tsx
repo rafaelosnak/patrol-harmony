@@ -18,7 +18,20 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 
 function SettingsPage() {
   const { t, lang, setLang } = useI18n();
-  const { profile, roles } = useAuth();
+  const { profile, roles, isSuperAdmin, companyId } = useAuth();
+
+  const { data: companyStatus } = useQuery({
+    queryKey: ["my-company-status", companyId],
+    enabled: !!companyId && !isSuperAdmin,
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("status,name,created_at,due_date").eq("id", companyId!).maybeSingle();
+      return data as { status: string; name: string; created_at: string; due_date: string | null } | null;
+    },
+  });
+
+  const activationDays = companyStatus?.created_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(companyStatus.created_at).getTime()) / 86400000))
+    : null;
 
   return (
     <div className="space-y-4">
@@ -34,6 +47,28 @@ function SettingsPage() {
             <div className="grid grid-cols-3 py-2"><dt className="text-muted-foreground">{t("common.status")}</dt><dd className="col-span-2 capitalize">{profile?.status ?? "—"}</dd></div>
           </dl>
         </section>
+
+        {!isSuperAdmin && companyStatus && (
+          <section className="glass rounded-xl p-5">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Status da Empresa
+            </h3>
+            <dl className="text-sm divide-y divide-border/60">
+              <div className="grid grid-cols-3 py-2"><dt className="text-muted-foreground">Empresa</dt><dd className="col-span-2 font-medium">{companyStatus.name}</dd></div>
+              <div className="grid grid-cols-3 py-2"><dt className="text-muted-foreground">Status</dt><dd className="col-span-2 text-emerald-600 dark:text-emerald-400 font-medium">Sistema ativo</dd></div>
+              {activationDays !== null && (
+                <div className="grid grid-cols-3 py-2"><dt className="text-muted-foreground">Tempo de ativação</dt><dd className="col-span-2">ativo há <strong>{activationDays}</strong> {activationDays === 1 ? "dia" : "dias"}</dd></div>
+              )}
+              {companyStatus.due_date && (
+                <div className="grid grid-cols-3 py-2"><dt className="text-muted-foreground">Vencimento</dt><dd className="col-span-2">{new Date(companyStatus.due_date).toLocaleDateString("pt-BR")}</dd></div>
+              )}
+            </dl>
+          </section>
+        )}
 
         <section className="glass rounded-xl p-5">
           <h3 className="text-sm font-semibold mb-3">{t("settings.lang")}</h3>
