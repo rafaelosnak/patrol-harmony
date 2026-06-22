@@ -61,9 +61,6 @@ function AuthedLayout() {
   const activationDays = companyStatus?.created_at
     ? Math.max(0, Math.floor((Date.now() - new Date(companyStatus.created_at).getTime()) / 86400000))
     : null;
-  const daysToDue = companyStatus?.due_date
-    ? Math.ceil((new Date(companyStatus.due_date + "T23:59:59").getTime() - Date.now()) / 86400000)
-    : null;
   const SUPPORT_PHONE = "14910044864";
   const SUPPORT_PHONE_FMT = "(14) 91004-4864";
 
@@ -170,38 +167,6 @@ function AuthedLayout() {
               </div>
             ) : (
               <>
-                {!isSuperAdmin && companyStatus?.status === "active" && (
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-status-active/30 bg-status-active/10 px-3 py-2 text-xs">
-                    <span className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-status-active animate-pulse" />
-                      <strong className="text-status-active">Bem-vindo,</strong>
-                      <span className="text-foreground font-medium">{companyStatus.name}</span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                      {daysToDue !== null && (
-                        <span className={
-                          daysToDue < 0 ? "text-destructive font-semibold"
-                          : daysToDue <= 5 ? "text-amber-500 font-semibold"
-                          : "text-muted-foreground"
-                        }>
-                          {daysToDue < 0
-                            ? `Vencido há ${Math.abs(daysToDue)} ${Math.abs(daysToDue) === 1 ? "dia" : "dias"}`
-                            : daysToDue === 0
-                              ? "Vence hoje"
-                              : `Faltam ${daysToDue} ${daysToDue === 1 ? "dia" : "dias"} para vencer`}
-                        </span>
-                      )}
-                      <a
-                        href={`https://wa.me/55${SUPPORT_PHONE}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-primary"
-                      >
-                        Suporte: {SUPPORT_PHONE_FMT}
-                      </a>
-                    </span>
-                  </div>
-                )}
 
                 <Outlet />
               </>
