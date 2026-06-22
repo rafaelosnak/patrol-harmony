@@ -364,6 +364,21 @@ function CompanyCard({
     queryKey: ["company-admins", c.id],
     queryFn: fetchAdmins,
   });
+  const { data: userCount } = useQuery({
+    queryKey: ["company-user-count", c.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", c.id);
+      return count ?? 0;
+    },
+  });
+
+  const planLabel = PLANS[c.plan]?.label ?? c.plan;
+  const unlimited = c.plan === "enterprise";
+  const used = userCount ?? 0;
+  const overLimit = !unlimited && used >= c.max_users;
 
   return (
     <div className="glass rounded-xl p-4 space-y-3">
@@ -376,6 +391,13 @@ function CompanyCard({
           {c.cnpj && <div className="text-xs text-muted-foreground mt-0.5">CNPJ: {c.cnpj}</div>}
         </div>
         {statusPill(c.status)}
+      </div>
+
+      <div className="flex items-center gap-2 text-xs">
+        <Pill tone="info">{planLabel}</Pill>
+        <span className={overLimit ? "text-destructive font-medium" : "text-muted-foreground"}>
+          👥 {used}{unlimited ? "" : ` / ${c.max_users}`} usuários{overLimit ? " — limite atingido" : ""}
+        </span>
       </div>
 
       <div className="text-xs space-y-1 text-muted-foreground">
