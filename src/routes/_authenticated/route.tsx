@@ -148,14 +148,38 @@ function AuthedLayout() {
                 <h2 className="text-xl font-bold mb-2">
                   Acesso {companyStatus.status === "suspended" ? "suspenso" : "bloqueado por inadimplência"}
                 </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  A empresa <strong>{companyStatus.name}</strong> está com o acesso ao PhytonGuard {companyStatus.status === "suspended" ? "suspenso" : "bloqueado por inadimplência"}.
-                  Entre em contato com o suporte para regularizar.
+                <p className="text-sm text-muted-foreground mb-2">
+                  A empresa <strong>{companyStatus.name}</strong> está com uma pendência no sistema PhytonGuard.
                 </p>
+                <p className="text-sm mb-4">
+                  Entre em contato com o suporte:{" "}
+                  <a href={`tel:+55${SUPPORT_PHONE}`} className="font-bold text-primary underline">
+                    {SUPPORT_PHONE_FMT}
+                  </a>
+                </p>
+                {activationDays !== null && (
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Tempo de ativação: <strong>{activationDays}</strong> {activationDays === 1 ? "dia" : "dias"}
+                  </p>
+                )}
                 <Button variant="outline" onClick={signOut}>Sair</Button>
               </div>
             ) : (
-              <Outlet />
+              <>
+                {!isSuperAdmin && companyStatus?.status === "active" && activationDays !== null && (
+                  <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-status-active/30 bg-status-active/10 px-3 py-2 text-xs">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-status-active animate-pulse" />
+                      <strong className="text-status-active">Sistema ativo</strong>
+                      <span className="text-muted-foreground">— {companyStatus.name} · há {activationDays} {activationDays === 1 ? "dia" : "dias"}</span>
+                    </span>
+                    <a href={`tel:+55${SUPPORT_PHONE}`} className="text-muted-foreground hover:text-primary">
+                      Suporte: {SUPPORT_PHONE_FMT}
+                    </a>
+                  </div>
+                )}
+                <Outlet />
+              </>
             )}
           </main>
         </div>
