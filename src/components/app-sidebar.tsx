@@ -20,7 +20,7 @@ export function AppSidebar() {
   const { t } = useI18n();
   const { isStaff, isSuperAdmin } = useAuth();
 
-  const groups: { label: string; items: { title: string; url: string; icon: typeof Map }[] }[] = isSuperAdmin
+  const groups: { label: string; items: { title: string; url: string; icon: typeof Map; external?: boolean }[] }[] = isSuperAdmin
     ? [{
         label: "Super Admin",
         items: [{ title: "Empresas", url: "/super-admin", icon: Crown }],
