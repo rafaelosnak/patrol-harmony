@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Languages, ShieldAlert, Phone } from "lucide-react";
+import { LogOut, Languages, ShieldAlert } from "lucide-react";
 import { NotificationBell } from "@/components/notification-bell";
 import { useLiveLocation } from "@/hooks/use-live-location";
 import { toast } from "sonner";
@@ -167,32 +167,6 @@ function AuthedLayout() {
               </div>
             ) : (
               <>
-                {!isSuperAdmin && companyStatus && (
-                  <div className="mb-4 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-semibold text-foreground">Bem-vindo, {companyStatus.name}</span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                        </span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Sistema ativo</span>
-                      </span>
-                      {activationDays !== null && (
-                        <>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="text-muted-foreground">ativo há <strong>{activationDays}</strong> {activationDays === 1 ? "dia" : "dias"}</span>
-                        </>
-                      )}
-                    </div>
-                    {companyStatus.due_date && (
-                      <span className="text-xs text-muted-foreground">
-                        Vence em: {new Date(companyStatus.due_date).toLocaleDateString("pt-BR")}
-                      </span>
-                    )}
-                  </div>
-                )}
                 <Outlet />
               </>
             )}
