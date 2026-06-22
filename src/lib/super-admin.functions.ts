@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CompanyStatus = "active" | "suspended" | "overdue";
+export type CompanyPlan = "starter" | "pro" | "business" | "enterprise";
 
 export interface CompanyInput {
   name: string;
@@ -14,6 +15,8 @@ export interface CompanyInput {
   billing_day?: number;
   due_date?: string | null;
   notes?: string | null;
+  plan?: CompanyPlan;
+  max_users?: number;
 }
 
 async function assertSuperAdmin(context: { supabase: any; userId: string }) {
@@ -46,6 +49,8 @@ export const createCompanyWithAdmin = createServerFn({ method: "POST" })
       billing_day: Number(data.billing_day) || 5,
       due_date: data.due_date || null,
       notes: data.notes || null,
+      plan: data.plan ?? "pro",
+      max_users: Number(data.max_users) || 15,
     }).select("id").single();
     if (cErr) throw new Error(cErr.message);
 
@@ -93,6 +98,8 @@ export const updateCompany = createServerFn({ method: "POST" })
       billing_day: Number(rest.billing_day) || 5,
       due_date: rest.due_date || null,
       notes: rest.notes || null,
+      ...(rest.plan ? { plan: rest.plan } : {}),
+      ...(rest.max_users != null ? { max_users: Number(rest.max_users) || 0 } : {}),
     }).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -139,6 +146,9 @@ export const createCompanyAdmin = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: canAdd } = await supabaseAdmin.rpc("company_can_add_user", { _company_id: data.company_id });
+    if (canAdd === false) throw new Error("Limite de usuários do plano atingido. Faça upgrade do plano da empresa.");
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
