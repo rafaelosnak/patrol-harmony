@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Settings as SettingsIcon, Lock, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { PageHeader, Pill } from "@/components/pg/ui";
