@@ -57,7 +57,7 @@ function SupportPage() {
     queryKey: ["support-messages", activeCompany],
     enabled: !!activeCompany,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("support_messages")
         .select("*")
         .eq("company_id", activeCompany!)
@@ -87,7 +87,7 @@ function SupportPage() {
     if (!user || !activeCompany || !text.trim()) return;
     const body = text.trim();
     setText("");
-    const { error } = await supabase.from("support_messages").insert({
+    const { error } = await (supabase as any).from("support_messages").insert({
       company_id: activeCompany,
       sender_id: user.id,
       from_super_admin: isSuperAdmin,
