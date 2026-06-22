@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedViaturasRouteImport } from './routes/_authenticated/viaturas'
+import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticated/suporte'
 import { Route as AuthenticatedSuperAdminRouteImport } from './routes/_authenticated/super-admin'
 import { Route as AuthenticatedRondasRouteImport } from './routes/_authenticated/rondas'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedViaturasRoute = AuthenticatedViaturasRouteImport.update({
   id: '/viaturas',
   path: '/viaturas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSuporteRoute = AuthenticatedSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSuperAdminRoute = AuthenticatedSuperAdminRouteImport.update({
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
   '/super-admin': typeof AuthenticatedSuperAdminRoute
+  '/suporte': typeof AuthenticatedSuporteRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRoutesByTo {
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/rondas': typeof AuthenticatedRondasRoute
   '/super-admin': typeof AuthenticatedSuperAdminRoute
+  '/suporte': typeof AuthenticatedSuporteRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRoutesById {
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/rondas': typeof AuthenticatedRondasRoute
   '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRoute
+  '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/viaturas': typeof AuthenticatedViaturasRoute
 }
 export interface FileRouteTypes {
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/rondas'
     | '/super-admin'
+    | '/suporte'
     | '/viaturas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/rondas'
     | '/super-admin'
+    | '/suporte'
     | '/viaturas'
   id:
     | '__root__'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios'
     | '/_authenticated/rondas'
     | '/_authenticated/super-admin'
+    | '/_authenticated/suporte'
     | '/_authenticated/viaturas'
   fileRoutesById: FileRoutesById
 }
@@ -288,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/viaturas'
       fullPath: '/viaturas'
       preLoaderRoute: typeof AuthenticatedViaturasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/suporte': {
+      id: '/_authenticated/suporte'
+      path: '/suporte'
+      fullPath: '/suporte'
+      preLoaderRoute: typeof AuthenticatedSuporteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/super-admin': {
@@ -414,6 +433,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedRondasRoute: typeof AuthenticatedRondasRoute
   AuthenticatedSuperAdminRoute: typeof AuthenticatedSuperAdminRoute
+  AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedViaturasRoute: typeof AuthenticatedViaturasRoute
 }
 
@@ -433,6 +453,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedRondasRoute: AuthenticatedRondasRoute,
   AuthenticatedSuperAdminRoute: AuthenticatedSuperAdminRoute,
+  AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedViaturasRoute: AuthenticatedViaturasRoute,
 }
 
