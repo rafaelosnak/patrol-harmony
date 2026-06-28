@@ -78,6 +78,9 @@ function SuperAdminPage() {
   const [adminTarget, setAdminTarget] = useState<Company | null>(null);
   const [adminForm, setAdminForm] = useState({ full_name: "", email: "", password: "" });
 
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [pwdForm, setPwdForm] = useState<{ user_id?: string; email: string; password: string; label?: string }>({ email: "", password: "" });
+
   const createFn = useServerFn(createCompanyWithAdmin);
   const updateFn = useServerFn(updateCompany);
   const statusFn = useServerFn(setCompanyStatus);
@@ -85,6 +88,7 @@ function SuperAdminPage() {
   const createAdminFn = useServerFn(createCompanyAdmin);
   const listAdminsFn = useServerFn(listCompanyAdmins);
   const listSuperAdminsFn = useServerFn(listSuperAdmins);
+  const resetPwdFn = useServerFn(resetUserPassword);
 
   const { data: companies, isLoading } = useQuery({
     queryKey: ["companies"],
