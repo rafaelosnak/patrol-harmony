@@ -206,3 +206,32 @@ export const listSuperAdmins = createServerFn({ method: "GET" })
       .in("id", ids);
     return profiles ?? [];
   });
+
+export const resetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { user_id?: string; email?: string; password: string }) => {
+    if (!input.user_id && !input.email) throw new Error("Informe o usuário (id ou e-mail)");
+    if (!input.password || input.password.length < 8) throw new Error("Senha deve ter ao menos 8 caracteres");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let uid = data.user_id;
+    let email = data.email;
+    if (!uid && email) {
+      const { data: prof } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email")
+        .ilike("email", email.trim())
+        .maybeSingle();
+      if (!prof) throw new Error("Usuário não encontrado com esse e-mail");
+      uid = prof.id;
+      email = prof.email ?? email;
+    }
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(uid!, { password: data.password });
+    if (error) throw new Error(error.message);
+    return { ok: true, user_id: uid, email };
+  });
+
