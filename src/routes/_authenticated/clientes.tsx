@@ -147,6 +147,19 @@ function ClientsPage() {
                     </div>
                   )}
                 </div>
+                <div>
+                  <Label>Como o vigia registra a ronda neste cliente?</Label>
+                  <Select value={form.default_round_mode} onValueChange={(v) => setForm({ ...form, default_round_mode: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="checkpoints">Ponto a ponto (vigia confirma cada ponto cadastrado)</SelectItem>
+                      <SelectItem value="track">Gravar trajeto por GPS (sistema grava o caminho)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O admin define aqui. O vigia só inicia a ronda — não escolhe o modo.
+                  </p>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>{t("common.cancel")}</Button>
