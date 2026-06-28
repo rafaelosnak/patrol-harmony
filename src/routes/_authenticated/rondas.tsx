@@ -707,6 +707,7 @@ function LocationsDialog({
   const { user, companyId } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [radius, setRadius] = useState(80);
   const [clientId, setClientId] = useState<string>("");
 
   const { data: items, isLoading } = useQuery({
