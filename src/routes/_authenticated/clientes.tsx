@@ -31,11 +31,22 @@ type Client = {
   contact: string | null;
   address: string | null;
   default_round_mode: string | null;
+  geofence_radius_meters: number | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 };
 
-const gmapsUrl = (addr: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
-const wazeUrl = (addr: string) => `https://www.waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`;
+const onlyDigits = (s: string) => s.replace(/\D+/g, "");
+const fmtCNPJ = (s: string) => {
+  const d = onlyDigits(s).slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+};
+
 const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`;
 
 function ClientsPage() {
