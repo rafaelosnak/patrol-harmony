@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      absences: {
+        Row: {
+          absence_date: string
+          auto_generated: boolean
+          company_id: string
+          created_at: string
+          doc_url: string | null
+          id: string
+          kind: string
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shift_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          absence_date: string
+          auto_generated?: boolean
+          company_id: string
+          created_at?: string
+          doc_url?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          absence_date?: string
+          auto_generated?: boolean
+          company_id?: string
+          created_at?: string
+          doc_url?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           alert_type: string
@@ -899,6 +965,7 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_supervisor_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      mark_missed_shifts: { Args: { _target_date?: string }; Returns: number }
     }
     Enums: {
       app_role:

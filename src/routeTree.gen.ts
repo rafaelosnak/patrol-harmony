@@ -21,6 +21,7 @@ import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
 import { Route as AuthenticatedOcorrenciasRouteImport } from './routes/_authenticated/ocorrencias'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
+import { Route as AuthenticatedJustificativasRouteImport } from './routes/_authenticated/justificativas'
 import { Route as AuthenticatedFuncionariosRouteImport } from './routes/_authenticated/funcionarios'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
 import { Route as AuthenticatedEquipesRouteImport } from './routes/_authenticated/equipes'
@@ -91,6 +92,12 @@ const AuthenticatedMapaRoute = AuthenticatedMapaRouteImport.update({
   path: '/mapa',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedJustificativasRoute =
+  AuthenticatedJustificativasRouteImport.update({
+    id: '/justificativas',
+    path: '/justificativas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFuncionariosRoute =
   AuthenticatedFuncionariosRouteImport.update({
     id: '/funcionarios',
@@ -153,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/equipes': typeof AuthenticatedEquipesRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/funcionarios': typeof AuthenticatedFuncionariosRoute
+  '/justificativas': typeof AuthenticatedJustificativasRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/ponto': typeof AuthenticatedPontoRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/equipes': typeof AuthenticatedEquipesRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/funcionarios': typeof AuthenticatedFuncionariosRoute
+  '/justificativas': typeof AuthenticatedJustificativasRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/ponto': typeof AuthenticatedPontoRoute
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/equipes': typeof AuthenticatedEquipesRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
   '/_authenticated/funcionarios': typeof AuthenticatedFuncionariosRoute
+  '/_authenticated/justificativas': typeof AuthenticatedJustificativasRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/ocorrencias': typeof AuthenticatedOcorrenciasRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/equipes'
     | '/escalas'
     | '/funcionarios'
+    | '/justificativas'
     | '/mapa'
     | '/ocorrencias'
     | '/ponto'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/equipes'
     | '/escalas'
     | '/funcionarios'
+    | '/justificativas'
     | '/mapa'
     | '/ocorrencias'
     | '/ponto'
@@ -268,6 +280,7 @@ export interface FileRouteTypes {
     | '/_authenticated/equipes'
     | '/_authenticated/escalas'
     | '/_authenticated/funcionarios'
+    | '/_authenticated/justificativas'
     | '/_authenticated/mapa'
     | '/_authenticated/ocorrencias'
     | '/_authenticated/ponto'
@@ -371,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMapaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/justificativas': {
+      id: '/_authenticated/justificativas'
+      path: '/justificativas'
+      fullPath: '/justificativas'
+      preLoaderRoute: typeof AuthenticatedJustificativasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/funcionarios': {
       id: '/_authenticated/funcionarios'
       path: '/funcionarios'
@@ -447,6 +467,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEquipesRoute: typeof AuthenticatedEquipesRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
   AuthenticatedFuncionariosRoute: typeof AuthenticatedFuncionariosRoute
+  AuthenticatedJustificativasRoute: typeof AuthenticatedJustificativasRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedOcorrenciasRoute: typeof AuthenticatedOcorrenciasRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
@@ -467,6 +488,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEquipesRoute: AuthenticatedEquipesRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
   AuthenticatedFuncionariosRoute: AuthenticatedFuncionariosRoute,
+  AuthenticatedJustificativasRoute: AuthenticatedJustificativasRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedOcorrenciasRoute: AuthenticatedOcorrenciasRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,

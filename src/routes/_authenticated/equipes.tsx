@@ -13,6 +13,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { updateEmployeeRole } from "@/lib/employees.functions";
+import { useNoVigiaGuard } from "@/hooks/use-staff-guard";
 
 export const Route = createFileRoute("/_authenticated/equipes")({
   head: () => ({ meta: [{ title: "Equipes — PhytonGuard" }] }),
@@ -23,6 +24,7 @@ type AppRole = "admin" | "supervisor" | "vigia" | "central";
 type Member = { id: string; full_name: string; email: string | null; status: string; created_at: string; roles: AppRole[] };
 
 function TeamsPage() {
+  useNoVigiaGuard();
   const { t } = useI18n();
   const { isStaff } = useAuth();
   const qc = useQueryClient();

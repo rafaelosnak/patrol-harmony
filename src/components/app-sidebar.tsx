@@ -18,7 +18,29 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const { t } = useI18n();
-  const { isStaff, isSuperAdmin } = useAuth();
+  const { isStaff, isSuperAdmin, hasRole } = useAuth();
+  const isVigia = hasRole("vigia") && !isStaff;
+
+  const operationItems = isVigia
+    ? [
+        { title: t("nav.rounds"), url: "/rondas", icon: Footprints },
+        { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
+        { title: t("nav.alerts"), url: "/alertas", icon: Siren },
+        { title: "Ponto", url: "/ponto", icon: Clock },
+        { title: "Minha escala", url: "/escalas", icon: CalendarClock },
+        { title: "Justificativas", url: "/justificativas", icon: ShieldAlert },
+        { title: "Chat interno", url: "/chat", icon: MessageCircle },
+      ]
+    : [
+        { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard },
+        { title: t("nav.map"), url: "/mapa", icon: Map },
+        { title: t("nav.teams"), url: "/equipes", icon: Users },
+        { title: t("nav.rounds"), url: "/rondas", icon: Footprints },
+        { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
+        { title: t("nav.alerts"), url: "/alertas", icon: Siren },
+        { title: "Ponto", url: "/ponto", icon: Clock },
+        { title: "Chat interno", url: "/chat", icon: MessageCircle },
+      ];
 
   const groups: { label: string; items: { title: string; url: string; icon: typeof Map; external?: boolean }[] }[] = isSuperAdmin
     ? [{
@@ -26,24 +48,13 @@ export function AppSidebar() {
         items: [{ title: "Empresas", url: "/super-admin", icon: Crown }],
       }]
     : [
-        {
-          label: t("nav.group.operation"),
-          items: [
-            { title: t("nav.dashboard"), url: "/dashboard", icon: LayoutDashboard },
-            { title: t("nav.map"), url: "/mapa", icon: Map },
-            { title: t("nav.teams"), url: "/equipes", icon: Users },
-            { title: t("nav.rounds"), url: "/rondas", icon: Footprints },
-            { title: t("nav.occurrences"), url: "/ocorrencias", icon: AlertOctagon },
-            { title: t("nav.alerts"), url: "/alertas", icon: Siren },
-            { title: "Ponto", url: "/ponto", icon: Clock },
-            { title: "Chat interno", url: "/chat", icon: MessageCircle },
-          ],
-        },
+        { label: t("nav.group.operation"), items: operationItems },
         ...(isStaff ? [{
           label: t("nav.group.management"),
           items: [
             { title: "Funcionários", url: "/funcionarios", icon: UserCog },
             { title: t("nav.shifts"), url: "/escalas", icon: CalendarClock },
+            { title: "Justificativas", url: "/justificativas", icon: ShieldAlert },
             { title: t("nav.vehicles"), url: "/viaturas", icon: Truck },
             { title: t("nav.announcements"), url: "/comunicados", icon: Megaphone },
             { title: t("nav.clients"), url: "/clientes", icon: Building2 },

@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
-import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/escalas")({
@@ -24,11 +23,11 @@ export const Route = createFileRoute("/_authenticated/escalas")({
 type Shift = { id: string; user_id: string; client_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
 
 function ShiftsPage() {
-  useStaffGuard();
   const { t } = useI18n();
-  const { hasRole, companyId } = useAuth();
+  const { hasRole, companyId, user, isStaff } = useAuth();
   const canManage = hasRole("admin");
   const canDelete = hasRole("admin");
+  const viewerIsVigia = !isStaff && hasRole("vigia");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Shift | null>(null);
@@ -41,8 +40,12 @@ function ShiftsPage() {
   const [form, setForm] = useState(defaultForm);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["shifts"],
-    queryFn: async () => (await supabase.from("shifts").select("id,user_id,client_id,shift_type,start_at,end_at,status").order("start_at", { ascending: false }).limit(100)).data ?? [],
+    queryKey: ["shifts", viewerIsVigia ? user?.id : "all"],
+    queryFn: async () => {
+      let q = supabase.from("shifts").select("id,user_id,client_id,shift_type,start_at,end_at,status").order("start_at", { ascending: false }).limit(200);
+      if (viewerIsVigia && user) q = q.eq("user_id", user.id);
+      return (await q).data ?? [];
+    },
   });
   const { data: people } = useQuery({ queryKey: ["profiles-min"], queryFn: async () => (await supabase.from("profiles").select("id,full_name")).data ?? [] });
   const { data: clients } = useQuery({ queryKey: ["clients-min"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
@@ -97,7 +100,10 @@ function ShiftsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t("shifts.title")} subtitle={t("shifts.subtitle")} actions={
+      <PageHeader
+        title={viewerIsVigia ? "Minha escala" : t("shifts.title")}
+        subtitle={viewerIsVigia ? "Turnos programados para você pelo administrador." : t("shifts.subtitle")}
+        actions={
         canManage && (
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild><Button onClick={openNew}><Plus className="h-4 w-4" />{t("shifts.new")}</Button></DialogTrigger>

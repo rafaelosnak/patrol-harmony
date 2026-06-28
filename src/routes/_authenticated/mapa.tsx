@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { PageHeader, StatusDot } from "@/components/pg/ui";
+import { useNoVigiaGuard } from "@/hooks/use-staff-guard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -42,6 +43,7 @@ function loadMaps(): Promise<typeof google> {
 type Layers = { alerts: boolean; clients: boolean; vehicles: boolean };
 
 function MapPage() {
+  useNoVigiaGuard();
   const { t } = useI18n();
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
