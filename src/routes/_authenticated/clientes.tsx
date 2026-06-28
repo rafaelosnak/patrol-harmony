@@ -18,6 +18,7 @@ import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { geocodeClient } from "@/lib/geocode.functions";
+import { lookupCep, fmtCep } from "@/lib/cep";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({ meta: [{ title: "Clientes — PhytonGuard" }] }),
