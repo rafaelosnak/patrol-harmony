@@ -340,7 +340,7 @@ function RoundsPage() {
           <DialogHeader>
             <DialogTitle>Iniciar nova ronda</DialogTitle>
             <DialogDescription>
-              Escolha o cliente. {isStaff ? "Você pode definir como será registrada." : "O modo já foi definido pelo gestor."}
+              Escolha o cliente. O modo de registro foi definido pelo admin no cadastro do cliente.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -358,30 +358,14 @@ function RoundsPage() {
               </Select>
             </div>
 
-            {isStaff ? (
-              <div>
-                <Label>Como registrar esta ronda?</Label>
-                <Select value={startMode} onValueChange={(v) => setStartMode(v as "auto" | "checkpoints" | "track")}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">
-                      Padrão do cliente {selectedClient ? `(${(selectedClient.default_round_mode ?? "checkpoints") === "track" ? "Trajeto GPS" : "Ponto a ponto"})` : ""}
-                    </SelectItem>
-                    <SelectItem value="checkpoints">Ponto a ponto (vigia registra cada ponto cadastrado)</SelectItem>
-                    <SelectItem value="track">Gravar trajeto (GPS grava o caminho automaticamente)</SelectItem>
-                  </SelectContent>
-                </Select>
+            {selectedClient && (
+              <div className="rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
+                Modo: <span className="font-medium text-foreground">
+                  {(selectedClient.default_round_mode ?? "checkpoints") === "track"
+                    ? "Gravação de trajeto por GPS"
+                    : "Registrar ponto a ponto (pontos cadastrados pelo admin)"}
+                </span>
               </div>
-            ) : (
-              selectedClient && (
-                <div className="rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
-                  Modo: <span className="font-medium text-foreground">
-                    {(selectedClient.default_round_mode ?? "checkpoints") === "track" ? "Gravação de trajeto por GPS" : "Registrar ponto a ponto"}
-                  </span>
-                </div>
-              )
             )}
 
             <div>
