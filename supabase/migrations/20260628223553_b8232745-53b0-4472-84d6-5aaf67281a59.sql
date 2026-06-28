@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.mark_missed_shifts(date) FROM PUBLIC, anon, authenticated;
