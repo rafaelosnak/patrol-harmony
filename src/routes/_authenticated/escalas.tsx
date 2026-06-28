@@ -23,11 +23,11 @@ export const Route = createFileRoute("/_authenticated/escalas")({
 type Shift = { id: string; user_id: string; client_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
 
 function ShiftsPage() {
-  useStaffGuard();
   const { t } = useI18n();
-  const { hasRole, companyId } = useAuth();
+  const { hasRole, companyId, user, isStaff } = useAuth();
   const canManage = hasRole("admin");
   const canDelete = hasRole("admin");
+  const viewerIsVigia = !isStaff && hasRole("vigia");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Shift | null>(null);
