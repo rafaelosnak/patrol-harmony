@@ -145,6 +145,9 @@ function ShiftHoursCard({ companyId }: { companyId: string }) {
       </div>
     </section>
   );
+}
+
+
 
 function ChangePasswordCard() {
   const [pwd, setPwd] = useState("");
