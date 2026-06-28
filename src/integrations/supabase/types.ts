@@ -364,6 +364,12 @@ export type Database = {
           name: string
           notes: string | null
           plan: Database["public"]["Enums"]["company_plan"]
+          shift_a_end: string | null
+          shift_a_start: string | null
+          shift_b_end: string | null
+          shift_b_start: string | null
+          shift_c_end: string | null
+          shift_c_start: string | null
           status: string
           updated_at: string
         }
@@ -382,6 +388,12 @@ export type Database = {
           name: string
           notes?: string | null
           plan?: Database["public"]["Enums"]["company_plan"]
+          shift_a_end?: string | null
+          shift_a_start?: string | null
+          shift_b_end?: string | null
+          shift_b_start?: string | null
+          shift_c_end?: string | null
+          shift_c_start?: string | null
           status?: string
           updated_at?: string
         }
@@ -400,6 +412,12 @@ export type Database = {
           name?: string
           notes?: string | null
           plan?: Database["public"]["Enums"]["company_plan"]
+          shift_a_end?: string | null
+          shift_a_start?: string | null
+          shift_b_end?: string | null
+          shift_b_start?: string | null
+          shift_c_end?: string | null
+          shift_c_start?: string | null
           status?: string
           updated_at?: string
         }
