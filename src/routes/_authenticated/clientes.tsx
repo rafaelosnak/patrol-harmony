@@ -117,6 +117,9 @@ function ClientsPage() {
         contact: form.contact || null,
         address: form.address || null,
         default_round_mode: form.default_round_mode || "checkpoints",
+        geofence_radius_meters: form.geofence_radius_meters || 150,
+        latitude: form.latitude,
+        longitude: form.longitude,
       };
       let clientId: string;
       if (editing) {
@@ -128,8 +131,8 @@ function ClientsPage() {
         if (error) throw error;
         clientId = (data as { id: string }).id;
       }
-      // Geocode in background if address provided/changed
-      if (form.address && (!editing || editing.address !== form.address)) {
+      // Geocode in background if address provided/changed and no manual GPS captured
+      if (form.address && form.latitude == null && (!editing || editing.address !== form.address)) {
         geocodeFn({ data: { clientId } })
           .then((r) => { if (r.ok) toast.success("Endereço localizado no mapa"); })
           .catch(() => toast.error("Não foi possível localizar o endereço"));
@@ -139,7 +142,7 @@ function ClientsPage() {
       toast.success(editing ? "Cliente atualizado" : "Cliente cadastrado");
       qc.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false); setEditing(null);
-      setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
+      setForm(emptyForm);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -150,12 +153,18 @@ function ClientsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (c: Client) => {
     setEditing(c);
-    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "", default_round_mode: c.default_round_mode ?? "checkpoints" });
+    setForm({
+      name: c.name, document: c.document ?? "", contact: c.contact ?? "",
+      address: c.address ?? "", default_round_mode: c.default_round_mode ?? "checkpoints",
+      geofence_radius_meters: c.geofence_radius_meters ?? 150,
+      latitude: c.latitude, longitude: c.longitude,
+    });
     setOpen(true);
   };
+
 
 
   return (
