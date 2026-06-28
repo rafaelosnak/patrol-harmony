@@ -29,6 +29,7 @@ type Client = {
   document: string | null;
   contact: string | null;
   address: string | null;
+  default_round_mode: string | null;
   created_at: string;
 };
 
