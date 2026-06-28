@@ -24,7 +24,8 @@ type Shift = { id: string; user_id: string; client_id: string | null; shift_type
 
 function ShiftsPage() {
   const { t } = useI18n();
-  const { isStaff, hasRole, companyId } = useAuth();
+  const { hasRole, companyId } = useAuth();
+  const canManage = hasRole("admin");
   const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -95,7 +96,7 @@ function ShiftsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t("shifts.title")} subtitle={t("shifts.subtitle")} actions={
-        isStaff && (
+        canManage && (
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild><Button onClick={openNew}><Plus className="h-4 w-4" />{t("shifts.new")}</Button></DialogTrigger>
             <DialogContent>
@@ -153,7 +154,7 @@ function ShiftsPage() {
               <th className="text-left px-4 py-3">{t("common.start")}</th>
               <th className="text-left px-4 py-3">{t("common.end")}</th>
               <th className="text-left px-4 py-3">{t("common.status")}</th>
-              {isStaff && <th className="text-right px-4 py-3">Ações</th>}
+              {canManage && <th className="text-right px-4 py-3">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -167,7 +168,7 @@ function ShiftsPage() {
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.start_at).toLocaleString()}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.end_at).toLocaleString()}</td>
                 <td className="px-4 py-3"><Pill>{s.status}</Pill></td>
-                {isStaff && (
+                {canManage && (
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => openEdit(s as Shift)}><Pencil className="h-3 w-3" /></Button>

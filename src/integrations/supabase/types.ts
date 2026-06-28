@@ -762,6 +762,7 @@ export type Database = {
           note: string | null
           punch_type: Database["public"]["Enums"]["punch_type"]
           punched_at: string
+          selfie_url: string | null
           user_id: string
         }
         Insert: {
@@ -773,6 +774,7 @@ export type Database = {
           note?: string | null
           punch_type: Database["public"]["Enums"]["punch_type"]
           punched_at?: string
+          selfie_url?: string | null
           user_id: string
         }
         Update: {
@@ -784,6 +786,7 @@ export type Database = {
           note?: string | null
           punch_type?: Database["public"]["Enums"]["punch_type"]
           punched_at?: string
+          selfie_url?: string | null
           user_id?: string
         }
         Relationships: [

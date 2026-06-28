@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X, Navigation, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Clock, LogIn, Coffee, Utensils, LogOut, MapPin, Pencil, Check, X, Navigation, ExternalLink, Camera, ScanFace } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   component: PontoPage,
@@ -22,6 +23,7 @@ type Entry = {
   punched_at: string;
   latitude: number | null;
   longitude: number | null;
+  selfie_url: string | null;
 };
 
 const STEPS: { type: PunchType; label: string; icon: typeof LogIn; color: string }[] = [
@@ -78,7 +80,9 @@ function PontoPage() {
   const doneToday = new Set(todayMine.map((e) => e.punch_type));
   const nextStep = STEPS.find((s) => !doneToday.has(s.type))?.type ?? null;
 
-  const punch = async (type: PunchType) => {
+  const [selfieFor, setSelfieFor] = useState<PunchType | null>(null);
+
+  const punch = async (type: PunchType, selfieBlob: Blob) => {
     if (!user) return;
     setPunching(type);
     let lat: number | null = null;
@@ -91,10 +95,26 @@ function PontoPage() {
       lat = pos.coords.latitude; lng = pos.coords.longitude;
     } catch { /* opcional */ }
 
+    // Upload selfie
+    let selfie_url: string | null = null;
+    try {
+      const path = `${user.id}/${Date.now()}_${type}.jpg`;
+      const { error: upErr } = await supabase.storage.from("punch-selfies").upload(path, selfieBlob, {
+        contentType: "image/jpeg", upsert: false,
+      });
+      if (upErr) throw upErr;
+      selfie_url = path;
+    } catch (e) {
+      setPunching(null);
+      toast.error("Falha ao enviar selfie: " + (e instanceof Error ? e.message : ""));
+      return;
+    }
+
     const { error } = await supabase.from("time_entries").insert({
-      user_id: user.id, punch_type: type, latitude: lat, longitude: lng, company_id: companyId!,
+      user_id: user.id, punch_type: type, latitude: lat, longitude: lng, company_id: companyId!, selfie_url,
     });
     setPunching(null);
+    setSelfieFor(null);
     if (error) { toast.error(error.message); return; }
     toast.success(`${STEPS.find((s) => s.type === type)?.label} registrada`);
     load();
@@ -148,8 +168,9 @@ function PontoPage() {
                     className="w-full mt-1"
                     variant={isNext ? "default" : "outline"}
                     disabled={!isNext || punching === s.type}
-                    onClick={() => punch(s.type)}
+                    onClick={() => setSelfieFor(s.type)}
                   >
+                    <ScanFace className="h-3 w-3 mr-1" />
                     {punching === s.type ? "Registrando..." : isNext ? "Bater ponto" : "Aguardando"}
                   </Button>
                 )}
@@ -202,7 +223,119 @@ function PontoPage() {
           )}
         </div>
       </div>
+
+      <SelfieDialog
+        open={selfieFor !== null}
+        onClose={() => setSelfieFor(null)}
+        onCapture={(blob) => selfieFor && punch(selfieFor, blob)}
+        loading={punching !== null}
+        label={selfieFor ? STEPS.find((s) => s.type === selfieFor)?.label ?? "" : ""}
+      />
     </div>
+  );
+}
+
+function SelfieDialog({
+  open, onClose, onCapture, loading, label,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCapture: (blob: Blob) => void;
+  loading: boolean;
+  label: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const previewBlob = useRef<Blob | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setPreview(null);
+    previewBlob.current = null;
+    setError(null);
+    (async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: 640, height: 480 },
+          audio: false,
+        });
+        setStream(s);
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          await videoRef.current.play().catch(() => {});
+        }
+      } catch (e) {
+        setError("Não foi possível acessar a câmera. Permita o acesso para bater o ponto.");
+      }
+    })();
+    return () => {
+      setStream((curr) => { curr?.getTracks().forEach((t) => t.stop()); return null; });
+    };
+  }, [open]);
+
+  const capture = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth || 640;
+    canvas.height = v.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((b) => {
+      if (!b) return;
+      previewBlob.current = b;
+      setPreview(URL.createObjectURL(b));
+    }, "image/jpeg", 0.85);
+  };
+
+  const confirm = () => {
+    if (previewBlob.current) onCapture(previewBlob.current);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ScanFace className="h-4 w-4" /> Reconhecimento facial — {label}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {error && <p className="text-sm text-rose-400">{error}</p>}
+          <div className="relative rounded-xl overflow-hidden border border-border/60 bg-black aspect-[4/3]">
+            {preview ? (
+              <img src={preview} alt="Selfie" className="w-full h-full object-cover" />
+            ) : (
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover [transform:scaleX(-1)]" />
+            )}
+            <div className="absolute inset-0 pointer-events-none border-[3px] border-primary/40 rounded-xl m-8" />
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Centralize seu rosto na moldura e capture a foto para confirmar o ponto.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancelar</Button>
+          {preview ? (
+            <>
+              <Button variant="ghost" onClick={() => { setPreview(null); previewBlob.current = null; }} disabled={loading}>
+                Tirar outra
+              </Button>
+              <Button onClick={confirm} disabled={loading}>
+                {loading ? "Registrando..." : "Confirmar ponto"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={capture} disabled={!stream}>
+              <Camera className="h-4 w-4 mr-1" /> Capturar
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
