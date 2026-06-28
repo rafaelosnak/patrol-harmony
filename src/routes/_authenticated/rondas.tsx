@@ -279,6 +279,9 @@ function RoundsPage() {
                     <Button size="sm" variant="outline" onClick={() => setOpenRound(r)}>
                       <MapPin className="h-3 w-3" /> Pontos
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => setTrackRound(r)} title="Ver trajeto GPS">
+                      <RouteIcon className="h-3 w-3" /> Trajeto{(r.track?.length ?? 0) > 0 ? ` (${r.track!.length})` : ""}
+                    </Button>
                     {inProg && (
                       <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)}>
                         <Square className="h-3 w-3" /> {t("rounds.finish")}
