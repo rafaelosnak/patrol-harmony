@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2, KeyRound } from "lucide-react";
+import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2, KeyRound, Camera } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
@@ -469,6 +469,7 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
 
 function AvatarUploader({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
@@ -511,10 +512,14 @@ function AvatarUploader({ value, onChange }: { value: string; onChange: (v: stri
         <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Foto do funcionário</div>
         <p className="text-xs text-muted-foreground mb-2">Aparece no topo quando o funcionário logar.</p>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
-        <div className="flex gap-2">
+        <input ref={cameraRef} type="file" accept="image/*" capture="user" className="hidden" onChange={onPick} />
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => cameraRef.current?.click()} disabled={uploading}>
+            <Camera className="h-3 w-3" /> Tirar foto
+          </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            {value ? "Trocar foto" : "Enviar foto"}
+            {value ? "Trocar arquivo" : "Da galeria"}
           </Button>
           {value && (
             <Button type="button" size="sm" variant="ghost" onClick={() => onChange("")}>

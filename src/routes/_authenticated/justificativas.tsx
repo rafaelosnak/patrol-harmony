@@ -153,8 +153,10 @@ function AbsencesPage() {
                     ref={fileRef}
                     type="file"
                     accept="image/*,application/pdf"
+                    capture="environment"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">No celular abre direto a câmera para tirar foto do atestado.</p>
                 </div>
               </div>
               <DialogFooter>
