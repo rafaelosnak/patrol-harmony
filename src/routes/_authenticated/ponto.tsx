@@ -80,7 +80,9 @@ function PontoPage() {
   const doneToday = new Set(todayMine.map((e) => e.punch_type));
   const nextStep = STEPS.find((s) => !doneToday.has(s.type))?.type ?? null;
 
-  const punch = async (type: PunchType) => {
+  const [selfieFor, setSelfieFor] = useState<PunchType | null>(null);
+
+  const punch = async (type: PunchType, selfieBlob: Blob) => {
     if (!user) return;
     setPunching(type);
     let lat: number | null = null;
@@ -93,10 +95,26 @@ function PontoPage() {
       lat = pos.coords.latitude; lng = pos.coords.longitude;
     } catch { /* opcional */ }
 
+    // Upload selfie
+    let selfie_url: string | null = null;
+    try {
+      const path = `${user.id}/${Date.now()}_${type}.jpg`;
+      const { error: upErr } = await supabase.storage.from("punch-selfies").upload(path, selfieBlob, {
+        contentType: "image/jpeg", upsert: false,
+      });
+      if (upErr) throw upErr;
+      selfie_url = path;
+    } catch (e) {
+      setPunching(null);
+      toast.error("Falha ao enviar selfie: " + (e instanceof Error ? e.message : ""));
+      return;
+    }
+
     const { error } = await supabase.from("time_entries").insert({
-      user_id: user.id, punch_type: type, latitude: lat, longitude: lng, company_id: companyId!,
+      user_id: user.id, punch_type: type, latitude: lat, longitude: lng, company_id: companyId!, selfie_url,
     });
     setPunching(null);
+    setSelfieFor(null);
     if (error) { toast.error(error.message); return; }
     toast.success(`${STEPS.find((s) => s.type === type)?.label} registrada`);
     load();
