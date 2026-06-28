@@ -840,7 +840,7 @@ function LocationsDialog({
                     target="_blank" rel="noreferrer"
                     className="text-xs text-primary inline-flex items-center gap-1 mt-1"
                   >
-                    <MapPin className="h-3 w-3" /> {l.lat.toFixed(5)}, {l.lng.toFixed(5)}
+                    <MapPin className="h-3 w-3" /> {l.lat.toFixed(5)}, {l.lng.toFixed(5)} • raio {l.radius_meters ?? 80}m
                   </a>
                 )}
               </div>
