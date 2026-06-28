@@ -387,6 +387,8 @@ export type Database = {
           id: string
           latitude: number | null
           longitude: number | null
+          media_type: string | null
+          media_url: string | null
           media_urls: string[] | null
           severity: string
           status: string
@@ -403,6 +405,8 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          media_type?: string | null
+          media_url?: string | null
           media_urls?: string[] | null
           severity?: string
           status?: string
@@ -419,6 +423,8 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          media_type?: string | null
+          media_url?: string | null
           media_urls?: string[] | null
           severity?: string
           status?: string
@@ -610,6 +616,7 @@ export type Database = {
           notes: string | null
           started_at: string
           status: string
+          track: Json
           user_id: string
           vehicle_id: string | null
         }
@@ -623,6 +630,7 @@ export type Database = {
           notes?: string | null
           started_at?: string
           status?: string
+          track?: Json
           user_id: string
           vehicle_id?: string | null
         }
@@ -636,6 +644,7 @@ export type Database = {
           notes?: string | null
           started_at?: string
           status?: string
+          track?: Json
           user_id?: string
           vehicle_id?: string | null
         }
