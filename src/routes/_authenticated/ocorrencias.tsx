@@ -30,6 +30,8 @@ function OccPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", type: "operational", severity: "medium" });
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<null | { id: string; title: string; description: string; type: string; severity: string; status: string }>(null);
 
   const { data, isLoading } = useQuery({
@@ -40,15 +42,29 @@ function OccPage() {
   const create = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
+      let media_url: string | null = null;
+      let media_type: string | null = null;
+      if (mediaFile) {
+        const ext = mediaFile.name.split(".").pop() || "bin";
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("occurrence-media").upload(path, mediaFile, {
+          contentType: mediaFile.type, upsert: false,
+        });
+        if (up.error) throw up.error;
+        media_url = path;
+        media_type = mediaFile.type.startsWith("video/") ? "video" : "image";
+      }
       const { error } = await supabase.from("occurrences").insert({
         user_id: user.id, title: form.title, description: form.description,
         type: form.type, severity: form.severity, company_id: companyId!,
+        media_url, media_type,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Ocorrência registrada"); qc.invalidateQueries({ queryKey: ["occurrences"] });
       setOpen(false); setForm({ title: "", description: "", type: "operational", severity: "medium" });
+      setMediaFile(null); if (fileRef.current) fileRef.current.value = "";
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
