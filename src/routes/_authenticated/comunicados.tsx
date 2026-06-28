@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/comunicados")({
@@ -24,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/comunicados")({
 type Ann = { id: string; title: string; body: string; audience: string; created_at: string; author_id: string };
 
 function AnnPage() {
+  const { allowed } = useStaffGuard();
+  if (!allowed) return null;
   const { t } = useI18n();
   const { user, isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");

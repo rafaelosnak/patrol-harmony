@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import { useStaffGuard } from "@/hooks/use-staff-guard";
 
 type Company = { name: string; cnpj: string | null; contact_email: string | null; contact_phone: string | null; address: string | null };
 
@@ -138,6 +139,8 @@ const sb = supabase as unknown as {
 };
 
 function ReportsPage() {
+  const { allowed } = useStaffGuard();
+  if (!allowed) return null;
   const { t } = useI18n();
   const [openKey, setOpenKey] = useState<ReportKey | null>(null);
 

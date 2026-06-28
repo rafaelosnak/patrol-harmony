@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/escalas")({
@@ -23,6 +24,8 @@ export const Route = createFileRoute("/_authenticated/escalas")({
 type Shift = { id: string; user_id: string; client_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
 
 function ShiftsPage() {
+  const { allowed } = useStaffGuard();
+  if (!allowed) return null;
   const { t } = useI18n();
   const { hasRole, companyId } = useAuth();
   const canManage = hasRole("admin");

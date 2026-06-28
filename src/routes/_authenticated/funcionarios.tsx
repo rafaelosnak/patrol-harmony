@@ -6,6 +6,7 @@ import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, 
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
+import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { createEmployee, deleteEmployee, updateEmployee, updateEmployeeRole, type EmployeeProfileInput } from "@/lib/employees.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,8 @@ const emptyProfile: EmployeeProfileInput = {
 };
 
 function EmployeesPage() {
+  const { allowed } = useStaffGuard();
+  if (!allowed) return null;
   const { hasRole, user } = useAuth();
   const isStaff = hasRole("admin") || hasRole("supervisor");
   const isAdmin = isStaff;
