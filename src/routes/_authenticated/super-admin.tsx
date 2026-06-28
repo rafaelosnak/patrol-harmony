@@ -265,10 +265,13 @@ function SuperAdminPage() {
             {superAdmins.map((u) => (
               <div key={u.id} className="flex items-center gap-2 border border-border/60 rounded-lg p-2 text-xs">
                 <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{u.full_name || "Sem nome"}</div>
                   <div className="text-muted-foreground truncate">{u.email}</div>
                 </div>
+                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openResetForUser(u)} title="Trocar senha">
+                  <KeyRound className="h-3 w-3" />
+                </Button>
               </div>
             ))}
           </div>
