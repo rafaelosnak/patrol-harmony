@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import {
   createCompanyWithAdmin, updateCompany, setCompanyStatus, registerCompanyPayment,
-  createCompanyAdmin, listCompanyAdmins,
+  createCompanyAdmin, listCompanyAdmins, listSuperAdmins,
 } from "@/lib/super-admin.functions";
 
 export const Route = createFileRoute("/_authenticated/super-admin")({
