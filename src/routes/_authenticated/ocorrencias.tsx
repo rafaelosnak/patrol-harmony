@@ -174,6 +174,7 @@ function OccPage() {
               <th className="text-left px-4 py-3">{t("common.severity")}</th>
               <th className="text-left px-4 py-3">{t("common.status")}</th>
               <th className="text-left px-4 py-3">{t("common.created")}</th>
+              <th className="text-left px-4 py-3">Mídia</th>
               <th className="text-right px-4 py-3">{t("common.actions")}</th>
             </tr>
           </thead>
