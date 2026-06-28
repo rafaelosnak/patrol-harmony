@@ -178,9 +178,25 @@ function ClientsPage() {
               <div className="space-y-3">
                 <div><Label>{t("common.name")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={120} /></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>{t("clients.document")}</Label><Input value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} maxLength={32} /></div>
+                  <div>
+                    <Label>{t("clients.document")} (CNPJ)</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        value={form.document}
+                        onChange={(e) => setForm({ ...form, document: fmtCNPJ(e.target.value) })}
+                        onBlur={() => { if (onlyDigits(form.document).length === 14) lookupCnpj(); }}
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={lookupCnpj} disabled={cnpjLoading}>
+                        {cnpjLoading ? "..." : "Buscar"}
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Preenche nome e endereço automaticamente.</p>
+                  </div>
                   <div><Label>{t("clients.contact")}</Label><Input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} maxLength={120} /></div>
                 </div>
+
                 <div>
                   <Label className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Endereço completo</Label>
                   <Textarea
