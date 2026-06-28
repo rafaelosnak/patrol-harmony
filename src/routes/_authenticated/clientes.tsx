@@ -61,9 +61,48 @@ function ClientsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
-  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
+  const emptyForm = { name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints", geofence_radius_meters: 150, latitude: null as number | null, longitude: null as number | null };
+  const [form, setForm] = useState(emptyForm);
   const [previewClient, setPreviewClient] = useState<Client | null>(null);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const geocodeFn = useServerFn(geocodeClient);
+
+  const lookupCnpj = async () => {
+    const digits = onlyDigits(form.document);
+    if (digits.length !== 14) { toast.error("CNPJ precisa ter 14 dígitos"); return; }
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error("CNPJ não encontrado");
+      const d = await res.json();
+      const addr = [
+        d.logradouro && `${d.logradouro}${d.numero ? `, ${d.numero}` : ""}`,
+        d.complemento, d.bairro,
+        d.municipio && `${d.municipio} - ${d.uf}`,
+        d.cep,
+      ].filter(Boolean).join(", ");
+      setForm((f) => ({
+        ...f,
+        name: f.name || d.razao_social || d.nome_fantasia || f.name,
+        contact: f.contact || d.ddd_telefone_1 || f.contact,
+        address: addr || f.address,
+      }));
+      toast.success("Dados do CNPJ preenchidos");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao consultar CNPJ");
+    } finally { setCnpjLoading(false); }
+  };
+
+  const captureLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { toast.error("GPS indisponível"); return; }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setForm((f) => ({ ...f, latitude: p.coords.latitude, longitude: p.coords.longitude })); toast.success(`Localização capturada (±${Math.round(p.coords.accuracy)}m)`); setGpsLoading(false); },
+      () => { toast.error("Não foi possível obter GPS"); setGpsLoading(false); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const { data, isLoading } = useQuery<Client[]>({
     queryKey: ["clients"],
