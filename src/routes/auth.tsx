@@ -149,8 +149,6 @@ function AuthPage() {
             </p>
           )}
         </div>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">{t("auth.firstAdmin")}</p>
       </div>
     </div>
   );
