@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
-import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/escalas")({
