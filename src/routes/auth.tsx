@@ -70,16 +70,6 @@ function AuthPage() {
     } finally { setLoading(false); }
   };
 
-  const onGoogle = async () => {
-    setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
-    });
-    if (result.error) {
-      toast.error(result.error.message ?? "Falha no login com Google");
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-12 overflow-hidden">
