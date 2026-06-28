@@ -100,7 +100,10 @@ function ShiftsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={t("shifts.title")} subtitle={t("shifts.subtitle")} actions={
+      <PageHeader
+        title={viewerIsVigia ? "Minha escala" : t("shifts.title")}
+        subtitle={viewerIsVigia ? "Turnos programados para você pelo administrador." : t("shifts.subtitle")}
+        actions={
         canManage && (
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
             <DialogTrigger asChild><Button onClick={openNew}><Plus className="h-4 w-4" />{t("shifts.new")}</Button></DialogTrigger>
