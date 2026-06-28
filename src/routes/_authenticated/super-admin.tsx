@@ -84,6 +84,7 @@ function SuperAdminPage() {
   const payFn = useServerFn(registerCompanyPayment);
   const createAdminFn = useServerFn(createCompanyAdmin);
   const listAdminsFn = useServerFn(listCompanyAdmins);
+  const listSuperAdminsFn = useServerFn(listSuperAdmins);
 
   const { data: companies, isLoading } = useQuery({
     queryKey: ["companies"],
@@ -93,6 +94,12 @@ function SuperAdminPage() {
       if (error) throw error;
       return (data ?? []) as Company[];
     },
+  });
+
+  const { data: superAdmins } = useQuery({
+    queryKey: ["super-admins"],
+    enabled: isSuperAdmin,
+    queryFn: async () => (await listSuperAdminsFn()) as Array<{ id: string; full_name: string | null; email: string | null; created_at: string }>,
   });
 
   const filtered = useMemo(() => {
