@@ -31,11 +31,25 @@ type Client = {
   contact: string | null;
   address: string | null;
   default_round_mode: string | null;
+  geofence_radius_meters: number | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
+};
+
+const onlyDigits = (s: string) => s.replace(/\D+/g, "");
+const fmtCNPJ = (s: string) => {
+  const d = onlyDigits(s).slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
 };
 
 const gmapsUrl = (addr: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
 const wazeUrl = (addr: string) => `https://www.waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`;
+
 const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`;
 
 function ClientsPage() {
@@ -47,9 +61,48 @@ function ClientsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
-  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
+  const emptyForm = { name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints", geofence_radius_meters: 150, latitude: null as number | null, longitude: null as number | null };
+  const [form, setForm] = useState(emptyForm);
   const [previewClient, setPreviewClient] = useState<Client | null>(null);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const geocodeFn = useServerFn(geocodeClient);
+
+  const lookupCnpj = async () => {
+    const digits = onlyDigits(form.document);
+    if (digits.length !== 14) { toast.error("CNPJ precisa ter 14 dígitos"); return; }
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error("CNPJ não encontrado");
+      const d = await res.json();
+      const addr = [
+        d.logradouro && `${d.logradouro}${d.numero ? `, ${d.numero}` : ""}`,
+        d.complemento, d.bairro,
+        d.municipio && `${d.municipio} - ${d.uf}`,
+        d.cep,
+      ].filter(Boolean).join(", ");
+      setForm((f) => ({
+        ...f,
+        name: f.name || d.razao_social || d.nome_fantasia || f.name,
+        contact: f.contact || d.ddd_telefone_1 || f.contact,
+        address: addr || f.address,
+      }));
+      toast.success("Dados do CNPJ preenchidos");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao consultar CNPJ");
+    } finally { setCnpjLoading(false); }
+  };
+
+  const captureLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { toast.error("GPS indisponível"); return; }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setForm((f) => ({ ...f, latitude: p.coords.latitude, longitude: p.coords.longitude })); toast.success(`Localização capturada (±${Math.round(p.coords.accuracy)}m)`); setGpsLoading(false); },
+      () => { toast.error("Não foi possível obter GPS"); setGpsLoading(false); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const { data, isLoading } = useQuery<Client[]>({
     queryKey: ["clients"],
@@ -64,6 +117,9 @@ function ClientsPage() {
         contact: form.contact || null,
         address: form.address || null,
         default_round_mode: form.default_round_mode || "checkpoints",
+        geofence_radius_meters: form.geofence_radius_meters || 150,
+        latitude: form.latitude,
+        longitude: form.longitude,
       };
       let clientId: string;
       if (editing) {
@@ -75,8 +131,8 @@ function ClientsPage() {
         if (error) throw error;
         clientId = (data as { id: string }).id;
       }
-      // Geocode in background if address provided/changed
-      if (form.address && (!editing || editing.address !== form.address)) {
+      // Geocode in background if address provided/changed and no manual GPS captured
+      if (form.address && form.latitude == null && (!editing || editing.address !== form.address)) {
         geocodeFn({ data: { clientId } })
           .then((r) => { if (r.ok) toast.success("Endereço localizado no mapa"); })
           .catch(() => toast.error("Não foi possível localizar o endereço"));
@@ -86,7 +142,7 @@ function ClientsPage() {
       toast.success(editing ? "Cliente atualizado" : "Cliente cadastrado");
       qc.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false); setEditing(null);
-      setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
+      setForm(emptyForm);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -97,12 +153,18 @@ function ClientsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (c: Client) => {
     setEditing(c);
-    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "", default_round_mode: c.default_round_mode ?? "checkpoints" });
+    setForm({
+      name: c.name, document: c.document ?? "", contact: c.contact ?? "",
+      address: c.address ?? "", default_round_mode: c.default_round_mode ?? "checkpoints",
+      geofence_radius_meters: c.geofence_radius_meters ?? 150,
+      latitude: c.latitude, longitude: c.longitude,
+    });
     setOpen(true);
   };
+
 
 
   return (
@@ -116,9 +178,25 @@ function ClientsPage() {
               <div className="space-y-3">
                 <div><Label>{t("common.name")}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} maxLength={120} /></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>{t("clients.document")}</Label><Input value={form.document} onChange={(e) => setForm({ ...form, document: e.target.value })} maxLength={32} /></div>
+                  <div>
+                    <Label>{t("clients.document")} (CNPJ)</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        value={form.document}
+                        onChange={(e) => setForm({ ...form, document: fmtCNPJ(e.target.value) })}
+                        onBlur={() => { if (onlyDigits(form.document).length === 14) lookupCnpj(); }}
+                        placeholder="00.000.000/0000-00"
+                        maxLength={18}
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={lookupCnpj} disabled={cnpjLoading}>
+                        {cnpjLoading ? "..." : "Buscar"}
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Preenche nome e endereço automaticamente.</p>
+                  </div>
                   <div><Label>{t("clients.contact")}</Label><Input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} maxLength={120} /></div>
                 </div>
+
                 <div>
                   <Label className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Endereço completo</Label>
                   <Textarea
@@ -146,6 +224,30 @@ function ClientsPage() {
                       />
                     </div>
                   )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="flex items-center gap-1"><Navigation className="h-3 w-3" /> Localização exata (GPS)</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        readOnly
+                        value={form.latitude != null && form.longitude != null ? `${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}` : ""}
+                        placeholder="Use o endereço ou capture no local"
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={captureLocation} disabled={gpsLoading}>
+                        {gpsLoading ? "..." : "Capturar GPS"}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Raio de tolerância (m)</Label>
+                    <Input
+                      type="number" min={20} max={2000}
+                      value={form.geofence_radius_meters}
+                      onChange={(e) => setForm({ ...form, geofence_radius_meters: Number(e.target.value) || 150 })}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Alerta se vigia bater fora dessa distância.</p>
+                  </div>
                 </div>
                 <div>
                   <Label>Como o vigia registra a ronda neste cliente?</Label>

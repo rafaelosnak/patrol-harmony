@@ -61,8 +61,15 @@ type CheckpointLocation = {
   client_id: string | null;
   lat: number | null;
   lng: number | null;
+  radius_meters: number;
   active: boolean;
 };
+
+function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const dx = (b.lat - a.lat) * 111000;
+  const dy = (b.lng - a.lng) * 111000 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.sqrt(dx * dx + dy * dy);
+}
 
 function getPosition(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
@@ -102,6 +109,7 @@ function RoundsPage() {
   });
 
   // GPS tracking for active rounds owned by the current user.
+  const lastGeofenceAlertRef = useRef<number>(0);
   useEffect(() => {
     if (!user) return;
     const mine = (rounds ?? []).find((r) => r.user_id === user.id && r.status === "in_progress");
@@ -113,14 +121,33 @@ function RoundsPage() {
           lat: pos.coords.latitude, lng: pos.coords.longitude,
           t: Date.now(), acc: pos.coords.accuracy,
         };
+        // Geofence check for track-mode rounds against client location
+        if (mine.client_id) {
+          const { data: cli } = await supabase
+            .from("clients")
+            .select("latitude,longitude,geofence_radius_meters,name")
+            .eq("id", mine.client_id).maybeSingle();
+          if (cli?.latitude != null && cli?.longitude != null) {
+            const d = distMeters(point, { lat: cli.latitude as number, lng: cli.longitude as number });
+            const radius = (cli.geofence_radius_meters as number) ?? 150;
+            if (d > radius && Date.now() - lastGeofenceAlertRef.current > 5 * 60 * 1000) {
+              lastGeofenceAlertRef.current = Date.now();
+              await supabase.from("alerts").insert({
+                user_id: user.id,
+                alert_type: "geofence_exit",
+                message: `Vigia saiu da área de ${cli.name} (${Math.round(d)}m do ponto, raio ${radius}m).`,
+                latitude: point.lat, longitude: point.lng,
+                client_id: mine.client_id, company_id: companyId!,
+              });
+            }
+          }
+        }
         const { data: cur } = await supabase.from("rounds").select("track").eq("id", mine.id).maybeSingle();
         const prev = (cur?.track as unknown as TrackPoint[] | null) ?? [];
         const last = prev[prev.length - 1];
         if (last) {
           const dt = point.t - last.t;
-          const dx = (point.lat - last.lat) * 111000;
-          const dy = (point.lng - last.lng) * 111000 * Math.cos((point.lat * Math.PI) / 180);
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dist = distMeters(point, last);
           if (dt < 10000 || dist < 8) return;
         }
         await supabase.from("rounds").update({ track: [...prev, point] as unknown as never }).eq("id", mine.id);
@@ -129,7 +156,8 @@ function RoundsPage() {
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [user, rounds]);
+  }, [user, rounds, companyId]);
+
 
   const userIds = Array.from(new Set((rounds ?? []).map((r) => r.user_id)));
   const { data: names } = useQuery({
@@ -459,23 +487,49 @@ function CheckpointsDialog({
       }
 
       const chosen = locations?.find((l) => l.id === locationId);
+      const lat = pos?.coords.latitude ?? chosen?.lat ?? null;
+      const lng = pos?.coords.longitude ?? chosen?.lng ?? null;
+
+      // Geofence check: if location has coords + radius, compare to current GPS
+      let outside: boolean | null = null;
+      let distance: number | null = null;
+      if (chosen?.lat != null && chosen?.lng != null && pos) {
+        distance = distMeters(
+          { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          { lat: chosen.lat, lng: chosen.lng },
+        );
+        outside = distance > (chosen.radius_meters ?? 80);
+      }
+
       const { error } = await supabase.from("round_checkpoints").insert({
         round_id: round.id,
         user_id: currentUserId,
         label: chosen?.name ?? (label.trim() || null),
         notes: notes.trim() || null,
-        lat: pos?.coords.latitude ?? chosen?.lat ?? null,
-        lng: pos?.coords.longitude ?? chosen?.lng ?? null,
+        lat, lng,
         accuracy: pos?.coords.accuracy ?? null,
         photo_url,
         checkpoint_location_id: locationId || null,
+        outside_geofence: outside,
+        distance_from_target_m: distance,
         company_id: companyId!,
       });
       if (error) throw error;
-      return pos !== null;
+
+      if (outside && chosen) {
+        await supabase.from("alerts").insert({
+          user_id: currentUserId,
+          alert_type: "checkpoint_out_of_area",
+          message: `Ponto "${chosen.name}" batido fora da área (${Math.round(distance!)}m do ponto, raio ${chosen.radius_meters ?? 80}m).`,
+          latitude: lat, longitude: lng,
+          client_id: round.client_id, company_id: companyId!,
+        });
+      }
+      return { hadGps: pos !== null, outside };
     },
-    onSuccess: (hadGps) => {
-      toast.success(hadGps ? "Ponto registrado com localização" : "Ponto registrado");
+    onSuccess: ({ hadGps, outside }) => {
+      if (outside) toast.warning("Ponto registrado FORA da área — admin notificado");
+      else toast.success(hadGps ? "Ponto registrado com localização" : "Ponto registrado");
       setLabel(""); setNotes(""); setLocationId(""); setPhotoFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["round-checkpoints", round?.id] });
@@ -483,6 +537,7 @@ function CheckpointsDialog({
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao registrar ponto"),
   });
+
 
   const canRegister = round?.status === "in_progress" && round.user_id === currentUserId;
 
@@ -652,6 +707,7 @@ function LocationsDialog({
   const { user, companyId } = useAuth();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [radius, setRadius] = useState(80);
   const [clientId, setClientId] = useState<string>("");
 
   const { data: items, isLoading } = useQuery({
@@ -682,20 +738,22 @@ function LocationsDialog({
       if (!name.trim()) throw new Error("Informe o nome do ponto");
       if (!clientId) throw new Error("Selecione o cliente do ponto");
       const pos = await getPosition();
+      if (!pos) throw new Error("GPS necessário — autorize a localização para registrar o ponto exato.");
       const { error } = await supabase.from("checkpoint_locations").insert({
         name: name.trim(),
         description: description.trim() || null,
         client_id: clientId,
-        lat: pos?.coords.latitude ?? null,
-        lng: pos?.coords.longitude ?? null,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        radius_meters: radius,
         created_by: user?.id ?? null,
         company_id: companyId!,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Ponto cadastrado");
-      setName(""); setDescription("");
+      toast.success("Ponto cadastrado com GPS exato");
+      setName(""); setDescription(""); setRadius(80);
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-all"] });
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-active"] });
     },
@@ -748,9 +806,15 @@ function LocationsDialog({
             <p className="text-xs text-muted-foreground">Novo ponto para <span className="font-medium text-foreground">{clientMap[clientId]?.name}</span></p>
             <Input placeholder="Nome do ponto (ex.: Praça em frente ao CDD)" value={name} onChange={(e) => setName(e.target.value)} />
             <Input placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <div>
+              <Label className="text-xs">Raio de tolerância (m) — alerta se vigia bater fora</Label>
+              <Input type="number" min={10} max={1000} value={radius} onChange={(e) => setRadius(Number(e.target.value) || 80)} />
+            </div>
             <Button className="w-full" onClick={() => create.mutate()} disabled={create.isPending}>
-              <Plus className="h-4 w-4" /> Adicionar ponto (usa GPS atual)
+              <Plus className="h-4 w-4" /> Salvar ponto (captura GPS atual)
             </Button>
+            <p className="text-[10px] text-muted-foreground">Vá fisicamente até o local antes de tocar em salvar para gravar a coordenada exata.</p>
+
           </div>
         )}
 
@@ -776,7 +840,7 @@ function LocationsDialog({
                     target="_blank" rel="noreferrer"
                     className="text-xs text-primary inline-flex items-center gap-1 mt-1"
                   >
-                    <MapPin className="h-3 w-3" /> {l.lat.toFixed(5)}, {l.lng.toFixed(5)}
+                    <MapPin className="h-3 w-3" /> {l.lat.toFixed(5)}, {l.lng.toFixed(5)} • raio {l.radius_meters ?? 80}m
                   </a>
                 )}
               </div>

@@ -201,6 +201,7 @@ export type Database = {
           lat: number | null
           lng: number | null
           name: string
+          radius_meters: number
           updated_at: string
         }
         Insert: {
@@ -214,6 +215,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           name: string
+          radius_meters?: number
           updated_at?: string
         }
         Update: {
@@ -227,6 +229,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           name?: string
+          radius_meters?: number
           updated_at?: string
         }
         Relationships: [
@@ -303,6 +306,7 @@ export type Database = {
           default_round_mode: string
           document: string | null
           geocoded_at: string | null
+          geofence_radius_meters: number
           id: string
           latitude: number | null
           longitude: number | null
@@ -319,6 +323,7 @@ export type Database = {
           default_round_mode?: string
           document?: string | null
           geocoded_at?: string | null
+          geofence_radius_meters?: number
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -335,6 +340,7 @@ export type Database = {
           default_round_mode?: string
           document?: string | null
           geocoded_at?: string | null
+          geofence_radius_meters?: number
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -637,11 +643,13 @@ export type Database = {
           checkpoint_location_id: string | null
           company_id: string
           created_at: string
+          distance_from_target_m: number | null
           id: string
           label: string | null
           lat: number | null
           lng: number | null
           notes: string | null
+          outside_geofence: boolean | null
           photo_url: string | null
           round_id: string
           user_id: string
@@ -651,11 +659,13 @@ export type Database = {
           checkpoint_location_id?: string | null
           company_id: string
           created_at?: string
+          distance_from_target_m?: number | null
           id?: string
           label?: string | null
           lat?: number | null
           lng?: number | null
           notes?: string | null
+          outside_geofence?: boolean | null
           photo_url?: string | null
           round_id: string
           user_id: string
@@ -665,11 +675,13 @@ export type Database = {
           checkpoint_location_id?: string | null
           company_id?: string
           created_at?: string
+          distance_from_target_m?: number | null
           id?: string
           label?: string | null
           lat?: number | null
           lng?: number | null
           notes?: string | null
+          outside_geofence?: boolean | null
           photo_url?: string | null
           round_id?: string
           user_id?: string
