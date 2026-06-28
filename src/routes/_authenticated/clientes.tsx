@@ -85,7 +85,7 @@ function ClientsPage() {
       toast.success(editing ? "Cliente atualizado" : "Cliente cadastrado");
       qc.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false); setEditing(null);
-      setForm({ name: "", document: "", contact: "", address: "" });
+      setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
