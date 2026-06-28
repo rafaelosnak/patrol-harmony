@@ -188,6 +188,7 @@ function OccPage() {
                 <td className="px-4 py-3"><Pill tone={o.severity === "critical" || o.severity === "high" ? "danger" : o.severity === "medium" ? "warn" : "default"}>{t(`occ.sev.${o.severity}` as never)}</Pill></td>
                 <td className="px-4 py-3"><Pill tone={o.status === "closed" ? "default" : o.status === "in_progress" ? "warn" : "danger"}>{t(`occ.status.${o.status === "in_progress" ? "inprogress" : o.status}` as never)}</Pill></td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
+                <td className="px-4 py-3"><MediaCell url={o.media_url} type={o.media_type} /></td>
                 <td className="px-4 py-3 text-right space-x-2">
                   {o.status !== "closed" && (
                     <Button size="sm" variant="outline" onClick={() => close.mutate(o.id)}>{t("occ.close")}</Button>
