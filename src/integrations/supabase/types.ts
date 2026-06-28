@@ -762,6 +762,59 @@ export type Database = {
           },
         ]
       }
+      shift_swap_requests: {
+        Row: {
+          admin_notes: string | null
+          company_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          replacement_user_id: string | null
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shift_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          replacement_user_id?: string | null
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          replacement_user_id?: string | null
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shift_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_swap_requests_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           client_id: string | null
@@ -979,6 +1032,15 @@ export type Database = {
       company_can_add_user: { Args: { _company_id: string }; Returns: boolean }
       company_is_active: { Args: { _company_id: string }; Returns: boolean }
       company_user_count: { Args: { _company_id: string }; Returns: number }
+      generate_monthly_schedule: {
+        Args: {
+          _company_id: string
+          _month: number
+          _overwrite?: boolean
+          _year: number
+        }
+        Returns: number
+      }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -990,6 +1052,10 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_supervisor_or_admin: { Args: { _user_id: string }; Returns: boolean }
       mark_missed_shifts: { Args: { _target_date?: string }; Returns: number }
+      shift_works_on: {
+        Args: { _day_of_month: number; _dow: number; _shift_type: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
