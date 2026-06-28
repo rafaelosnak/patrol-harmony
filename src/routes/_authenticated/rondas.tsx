@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Footprints, MapPin, Pencil, Play, Plus, Square, Trash2, Truck } from "lucide-react";
-import { useRef, useState } from "react";
+import { Camera, Footprints, MapPin, Pencil, Play, Plus, Route as RouteIcon, Square, Trash2, Truck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -23,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/rondas")({
   component: RoundsPage,
 });
 
+type TrackPoint = { lat: number; lng: number; t: number; acc?: number };
+
 type RoundRow = {
   id: string;
   user_id: string;
@@ -34,6 +36,7 @@ type RoundRow = {
   checkpoints_done: number;
   checkpoints_total: number;
   notes: string | null;
+  track: TrackPoint[] | null;
 };
 
 type Checkpoint = {
@@ -81,6 +84,7 @@ function RoundsPage() {
   const [startVehicleId, setStartVehicleId] = useState<string>("");
   const [startTotal, setStartTotal] = useState<number>(6);
   const [startTrajeto, setStartTrajeto] = useState<string>("");
+  const [trackRound, setTrackRound] = useState<RoundRow | null>(null);
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
   const { data: rounds, isLoading } = useQuery({
@@ -88,13 +92,43 @@ function RoundsPage() {
     queryFn: async (): Promise<RoundRow[]> => {
       const { data, error } = await supabase
         .from("rounds")
-        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes")
+        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes,track")
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
       return (data ?? []) as RoundRow[];
     },
   });
+
+  // GPS tracking for active rounds owned by the current user.
+  useEffect(() => {
+    if (!user) return;
+    const mine = (rounds ?? []).find((r) => r.user_id === user.id && r.status === "in_progress");
+    if (!mine) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const point: TrackPoint = {
+          lat: pos.coords.latitude, lng: pos.coords.longitude,
+          t: Date.now(), acc: pos.coords.accuracy,
+        };
+        const { data: cur } = await supabase.from("rounds").select("track").eq("id", mine.id).maybeSingle();
+        const prev = (cur?.track as unknown as TrackPoint[] | null) ?? [];
+        const last = prev[prev.length - 1];
+        if (last) {
+          const dt = point.t - last.t;
+          const dx = (point.lat - last.lat) * 111000;
+          const dy = (point.lng - last.lng) * 111000 * Math.cos((point.lat * Math.PI) / 180);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dt < 10000 || dist < 8) return;
+        }
+        await supabase.from("rounds").update({ track: [...prev, point] as unknown as never }).eq("id", mine.id);
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [user, rounds]);
 
   const userIds = Array.from(new Set((rounds ?? []).map((r) => r.user_id)));
   const { data: names } = useQuery({
@@ -245,6 +279,9 @@ function RoundsPage() {
                     <Button size="sm" variant="outline" onClick={() => setOpenRound(r)}>
                       <MapPin className="h-3 w-3" /> Pontos
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => setTrackRound(r)} title="Ver trajeto GPS">
+                      <RouteIcon className="h-3 w-3" /> Trajeto{(r.track?.length ?? 0) > 0 ? ` (${r.track!.length})` : ""}
+                    </Button>
                     {inProg && (
                       <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)}>
                         <Square className="h-3 w-3" /> {t("rounds.finish")}
@@ -327,6 +364,8 @@ function RoundsPage() {
       />
 
       <LocationsDialog open={openLocations} onClose={() => setOpenLocations(false)} canEdit={isStaff} />
+
+      <TrackDialog round={trackRound} onClose={() => setTrackRound(null)} userName={trackRound ? (names?.[trackRound.user_id] ?? "—") : ""} />
     </div>
   );
 }
@@ -699,6 +738,69 @@ function LocationsDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Fechar</Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TrackDialog({ round, onClose, userName }: { round: RoundRow | null; onClose: () => void; userName: string }) {
+  const open = !!round;
+  const points = (round?.track ?? []) as TrackPoint[];
+  const distance = (() => {
+    let m = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const dx = (b.lat - a.lat) * 111000;
+      const dy = (b.lng - a.lng) * 111000 * Math.cos((b.lat * Math.PI) / 180);
+      m += Math.sqrt(dx * dx + dy * dy);
+    }
+    return m;
+  })();
+  const mapsHref = points.length > 0
+    ? `https://www.google.com/maps/dir/${points.map((p) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join("/")}`
+    : null;
+  const staticMap = points.length > 0
+    ? (() => {
+        // limit to 80 points to fit URL
+        const sample = points.length > 80
+          ? points.filter((_, i) => i % Math.ceil(points.length / 80) === 0)
+          : points;
+        const path = sample.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|");
+        return `https://staticmap.openstreetmap.de/staticmap.php?size=600x400&path=color:blue|weight:4|${path}`;
+      })()
+    : null;
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Trajeto da ronda — {userName}</DialogTitle>
+          <DialogDescription>
+            {points.length} pontos registrados • {(distance / 1000).toFixed(2)} km percorridos
+          </DialogDescription>
+        </DialogHeader>
+        {points.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Nenhum ponto GPS gravado nesta ronda.</p>
+        ) : (
+          <div className="space-y-3">
+            {staticMap && (
+              <img src={staticMap} alt="Trajeto" className="w-full rounded-md border border-border/60" />
+            )}
+            {mapsHref && (
+              <a href={mapsHref} target="_blank" rel="noreferrer" className="text-primary text-sm hover:underline inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Abrir trajeto no Google Maps
+              </a>
+            )}
+            <div className="max-h-48 overflow-y-auto rounded-md border border-border/60 text-xs font-mono">
+              {points.map((p, i) => (
+                <div key={i} className="px-2 py-1 border-b border-border/40 last:border-b-0 flex justify-between">
+                  <span>{new Date(p.t).toLocaleTimeString()}</span>
+                  <span>{p.lat.toFixed(5)}, {p.lng.toFixed(5)}</span>
+                  <span className="text-muted-foreground">±{Math.round(p.acc ?? 0)}m</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

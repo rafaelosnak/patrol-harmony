@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2 } from "lucide-react";
+import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2, KeyRound } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { useStaffGuard } from "@/hooks/use-staff-guard";
-import { createEmployee, deleteEmployee, updateEmployee, updateEmployeeRole, type EmployeeProfileInput } from "@/lib/employees.functions";
+import { createEmployee, deleteEmployee, updateEmployee, updateEmployeeRole, resetEmployeePassword, type EmployeeProfileInput } from "@/lib/employees.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,9 @@ function EmployeesPage() {
   const update = useServerFn(updateEmployee);
   const remove = useServerFn(deleteEmployee);
   const updateRole = useServerFn(updateEmployeeRole);
+  const resetPwd = useServerFn(resetEmployeePassword);
+  const [pwdFor, setPwdFor] = useState<Row | null>(null);
+  const [newPwd, setNewPwd] = useState("");
 
   const [form, setForm] = useState<EmployeeProfileInput & { email: string; password: string; role: AppRole; client_ids: string[] }>({
     ...emptyProfile, email: "", password: "", role: "vigia", client_ids: [],
@@ -269,9 +272,14 @@ function EmployeesPage() {
                       </>
                     )}
                     {isAdmin && r.id !== user?.id && (
-                      <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)} aria-label="Remover">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => { setPwdFor(r); setNewPwd(""); }} aria-label="Trocar senha" title="Trocar senha">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)} aria-label="Remover">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </TableCell>
@@ -304,6 +312,37 @@ function EmployeesPage() {
 
       {/* Documents dialog */}
       <DocumentsDialog row={docsFor} onClose={() => setDocsFor(null)} canManage={isStaff} />
+
+      {/* Password reset dialog */}
+      <Dialog open={!!pwdFor} onOpenChange={(o) => { if (!o) { setPwdFor(null); setNewPwd(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Trocar senha — {pwdFor?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Defina uma nova senha (mín. 8 caracteres). O funcionário usará esta senha no próximo login.</p>
+            <div>
+              <Label>Nova senha</Label>
+              <Input type="text" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="Mínimo 8 caracteres" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPwdFor(null); setNewPwd(""); }}>Cancelar</Button>
+            <Button
+              disabled={newPwd.length < 8 || submitting}
+              onClick={async () => {
+                if (!pwdFor) return;
+                setSubmitting(true);
+                try {
+                  await resetPwd({ data: { user_id: pwdFor.id, password: newPwd } });
+                  toast.success("Senha redefinida");
+                  setPwdFor(null); setNewPwd("");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Erro");
+                } finally { setSubmitting(false); }
+              }}
+            >Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

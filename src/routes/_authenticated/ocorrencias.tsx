@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { AlertOctagon, Pencil, Plus, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { AlertOctagon, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
@@ -30,6 +30,8 @@ function OccPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", type: "operational", severity: "medium" });
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<null | { id: string; title: string; description: string; type: string; severity: string; status: string }>(null);
 
   const { data, isLoading } = useQuery({
@@ -40,15 +42,29 @@ function OccPage() {
   const create = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
+      let media_url: string | null = null;
+      let media_type: string | null = null;
+      if (mediaFile) {
+        const ext = mediaFile.name.split(".").pop() || "bin";
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("occurrence-media").upload(path, mediaFile, {
+          contentType: mediaFile.type, upsert: false,
+        });
+        if (up.error) throw up.error;
+        media_url = path;
+        media_type = mediaFile.type.startsWith("video/") ? "video" : "image";
+      }
       const { error } = await supabase.from("occurrences").insert({
         user_id: user.id, title: form.title, description: form.description,
         type: form.type, severity: form.severity, company_id: companyId!,
+        media_url, media_type,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Ocorrência registrada"); qc.invalidateQueries({ queryKey: ["occurrences"] });
       setOpen(false); setForm({ title: "", description: "", type: "operational", severity: "medium" });
+      setMediaFile(null); if (fileRef.current) fileRef.current.value = "";
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -125,6 +141,21 @@ function OccPage() {
                 <Label>{t("common.description")}</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} maxLength={1000} />
               </div>
+              <div>
+                <Label className="flex items-center gap-1"><Paperclip className="h-3 w-3" /> Foto ou vídeo (opcional)</Label>
+                <Input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  capture="environment"
+                  onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)}
+                />
+                {mediaFile && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {mediaFile.type.startsWith("video/") ? "🎥" : "📷"} {mediaFile.name} ({Math.round(mediaFile.size / 1024)} KB)
+                  </p>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
@@ -143,12 +174,13 @@ function OccPage() {
               <th className="text-left px-4 py-3">{t("common.severity")}</th>
               <th className="text-left px-4 py-3">{t("common.status")}</th>
               <th className="text-left px-4 py-3">{t("common.created")}</th>
+              <th className="text-left px-4 py-3">Mídia</th>
               <th className="text-right px-4 py-3">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
-            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={6}><EmptyState icon={AlertOctagon} title={t("common.empty")} /></td></tr>}
+            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
+            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={7}><EmptyState icon={AlertOctagon} title={t("common.empty")} /></td></tr>}
             {(data ?? []).map((o) => (
               <tr key={o.id} className="hover:bg-accent/30">
                 <td className="px-4 py-3 font-medium">{o.title}</td>
@@ -156,6 +188,7 @@ function OccPage() {
                 <td className="px-4 py-3"><Pill tone={o.severity === "critical" || o.severity === "high" ? "danger" : o.severity === "medium" ? "warn" : "default"}>{t(`occ.sev.${o.severity}` as never)}</Pill></td>
                 <td className="px-4 py-3"><Pill tone={o.status === "closed" ? "default" : o.status === "in_progress" ? "warn" : "danger"}>{t(`occ.status.${o.status === "in_progress" ? "inprogress" : o.status}` as never)}</Pill></td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
+                <td className="px-4 py-3"><MediaCell url={o.media_url} type={o.media_type} /></td>
                 <td className="px-4 py-3 text-right space-x-2">
                   {o.status !== "closed" && (
                     <Button size="sm" variant="outline" onClick={() => close.mutate(o.id)}>{t("occ.close")}</Button>
@@ -234,5 +267,26 @@ function OccPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function MediaCell({ url, type }: { url: string | null; type: string | null }) {
+  const { data: signed } = useQuery({
+    queryKey: ["occ-media", url],
+    enabled: !!url,
+    queryFn: async () => {
+      const { data } = await supabase.storage.from("occurrence-media").createSignedUrl(url!, 3600);
+      return data?.signedUrl ?? null;
+    },
+  });
+  if (!url) return <span className="text-muted-foreground text-xs">—</span>;
+  if (!signed) return <span className="text-muted-foreground text-xs">…</span>;
+  if (type === "video") {
+    return <a href={signed} target="_blank" rel="noreferrer" className="text-primary text-xs hover:underline">🎥 Ver vídeo</a>;
+  }
+  return (
+    <a href={signed} target="_blank" rel="noreferrer">
+      <img src={signed} alt="Mídia" className="h-10 w-10 object-cover rounded border border-border/60" />
+    </a>
   );
 }
