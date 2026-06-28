@@ -46,7 +46,7 @@ function ClientsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
-  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "" });
+  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
   const [previewClient, setPreviewClient] = useState<Client | null>(null);
   const geocodeFn = useServerFn(geocodeClient);
 
