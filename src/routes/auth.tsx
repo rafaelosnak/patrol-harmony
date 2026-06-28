@@ -123,18 +123,6 @@ function AuthPage() {
             </Button>
           </form>
 
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase text-muted-foreground">ou</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <Button type="button" variant="outline" onClick={onGoogle} disabled={loading} className="w-full">
-            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#EA4335" d="M12 10v4h5.6c-.7 2.2-2.7 3.8-5.6 3.8a6 6 0 1 1 0-12 5.6 5.6 0 0 1 4 1.5l2.8-2.8A9.7 9.7 0 0 0 12 2a10 10 0 1 0 9.8 12H12z" />
-            </svg>
-            {t("auth.google")}
-          </Button>
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
             <button type="button" className="hover:text-foreground" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}>
