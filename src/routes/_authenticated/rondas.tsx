@@ -806,9 +806,15 @@ function LocationsDialog({
             <p className="text-xs text-muted-foreground">Novo ponto para <span className="font-medium text-foreground">{clientMap[clientId]?.name}</span></p>
             <Input placeholder="Nome do ponto (ex.: Praça em frente ao CDD)" value={name} onChange={(e) => setName(e.target.value)} />
             <Input placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <div>
+              <Label className="text-xs">Raio de tolerância (m) — alerta se vigia bater fora</Label>
+              <Input type="number" min={10} max={1000} value={radius} onChange={(e) => setRadius(Number(e.target.value) || 80)} />
+            </div>
             <Button className="w-full" onClick={() => create.mutate()} disabled={create.isPending}>
-              <Plus className="h-4 w-4" /> Adicionar ponto (usa GPS atual)
+              <Plus className="h-4 w-4" /> Salvar ponto (captura GPS atual)
             </Button>
+            <p className="text-[10px] text-muted-foreground">Vá fisicamente até o local antes de tocar em salvar para gravar a coordenada exata.</p>
+
           </div>
         )}
 
