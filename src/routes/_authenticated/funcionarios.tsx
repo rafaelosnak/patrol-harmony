@@ -7,7 +7,7 @@ import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { useStaffGuard } from "@/hooks/use-staff-guard";
-import { createEmployee, deleteEmployee, updateEmployee, updateEmployeeRole, type EmployeeProfileInput } from "@/lib/employees.functions";
+import { createEmployee, deleteEmployee, updateEmployee, updateEmployeeRole, resetEmployeePassword, type EmployeeProfileInput } from "@/lib/employees.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
