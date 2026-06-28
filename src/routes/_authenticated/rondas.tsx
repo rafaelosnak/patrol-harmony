@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Footprints, MapPin, Pencil, Play, Plus, Square, Trash2, Truck } from "lucide-react";
-import { useRef, useState } from "react";
+import { Camera, Footprints, MapPin, Pencil, Play, Plus, Route as RouteIcon, Square, Trash2, Truck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState, PageHeader, Pill } from "@/components/pg/ui";
