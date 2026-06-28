@@ -58,6 +58,7 @@ const emptyProfile: EmployeeProfileInput = {
   address_street: "", address_number: "", address_complement: "",
   address_district: "", address_city: "", address_state: "", address_zip: "", notes: "",
   avatar_url: "",
+  default_shift_type: "12x36", work_period: "integral",
 };
 
 function EmployeesPage() {
