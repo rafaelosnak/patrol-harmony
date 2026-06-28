@@ -395,6 +395,33 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
           <div><Label>Data de nascimento</Label><Input type="date" value={value.birth_date ?? ""} onChange={(e) => onChange({ birth_date: e.target.value })} /></div>
           <div><Label>Data de admissão</Label><Input type="date" value={value.hired_at ?? ""} onChange={(e) => onChange({ hired_at: e.target.value })} /></div>
           <div><Label>Telefone</Label><Input value={value.phone ?? ""} onChange={(e) => onChange({ phone: e.target.value })} placeholder="(11) 99999-9999" /></div>
+          <div>
+            <Label>Turno padrão</Label>
+            <Select value={value.default_shift_type ?? "12x36"} onValueChange={(v) => onChange({ default_shift_type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12x36">12x36</SelectItem>
+                <SelectItem value="5x1">5x1</SelectItem>
+                <SelectItem value="6x1">6x1</SelectItem>
+                <SelectItem value="4x2">4x2</SelectItem>
+                <SelectItem value="5x2">5x2</SelectItem>
+                <SelectItem value="custom">Personalizada</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Período de trabalho</Label>
+            <Select value={value.work_period ?? "integral"} onValueChange={(v) => onChange({ work_period: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manha">Manhã</SelectItem>
+                <SelectItem value="tarde">Tarde</SelectItem>
+                <SelectItem value="noite">Noite</SelectItem>
+                <SelectItem value="madrugada">Madrugada</SelectItem>
+                <SelectItem value="integral">Integral / Diurno</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
