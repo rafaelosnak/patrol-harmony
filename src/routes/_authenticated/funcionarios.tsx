@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2 } from "lucide-react";
+import { UserPlus, Shield, Trash2, Loader2, Pencil, FileText, Upload, Download, X, Building2, KeyRound } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
