@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useMemo, useState } from "react";
-import { Crown, Plus, Pencil, CheckCircle2, AlertCircle, Ban, UserPlus, Mail } from "lucide-react";
+import { Crown, Plus, Pencil, CheckCircle2, AlertCircle, Ban, UserPlus, Mail, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, Pill } from "@/components/pg/ui";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import {
   createCompanyWithAdmin, updateCompany, setCompanyStatus, registerCompanyPayment,
-  createCompanyAdmin, listCompanyAdmins, listSuperAdmins,
+  createCompanyAdmin, listCompanyAdmins, listSuperAdmins, resetUserPassword,
 } from "@/lib/super-admin.functions";
 
 export const Route = createFileRoute("/_authenticated/super-admin")({
@@ -78,6 +78,9 @@ function SuperAdminPage() {
   const [adminTarget, setAdminTarget] = useState<Company | null>(null);
   const [adminForm, setAdminForm] = useState({ full_name: "", email: "", password: "" });
 
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [pwdForm, setPwdForm] = useState<{ user_id?: string; email: string; password: string; label?: string }>({ email: "", password: "" });
+
   const createFn = useServerFn(createCompanyWithAdmin);
   const updateFn = useServerFn(updateCompany);
   const statusFn = useServerFn(setCompanyStatus);
@@ -85,6 +88,7 @@ function SuperAdminPage() {
   const createAdminFn = useServerFn(createCompanyAdmin);
   const listAdminsFn = useServerFn(listCompanyAdmins);
   const listSuperAdminsFn = useServerFn(listSuperAdmins);
+  const resetPwdFn = useServerFn(resetUserPassword);
 
   const { data: companies, isLoading } = useQuery({
     queryKey: ["companies"],
@@ -166,6 +170,21 @@ function SuperAdminPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const resetPwd = useMutation({
+    mutationFn: async () => {
+      const payload: { user_id?: string; email?: string; password: string } = { password: pwdForm.password };
+      if (pwdForm.user_id) payload.user_id = pwdForm.user_id;
+      else payload.email = pwdForm.email;
+      return resetPwdFn({ data: payload });
+    },
+    onSuccess: (res: any) => {
+      toast.success(`Senha alterada${res?.email ? ` para ${res.email}` : ""}`);
+      setPwdOpen(false);
+      setPwdForm({ email: "", password: "" });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
   if (loading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
   if (!isSuperAdmin) return <Navigate to="/dashboard" />;
 
@@ -186,6 +205,14 @@ function SuperAdminPage() {
     setAdminTarget(c);
     setAdminForm({ full_name: "", email: "", password: "" });
     setAdminOpen(true);
+  };
+  const openResetByEmail = () => {
+    setPwdForm({ email: "", password: "" });
+    setPwdOpen(true);
+  };
+  const openResetForUser = (u: { id: string; email: string | null; full_name?: string | null }) => {
+    setPwdForm({ user_id: u.id, email: u.email ?? "", password: "", label: u.full_name ?? u.email ?? "" });
+    setPwdOpen(true);
   };
 
   const statusPill = (s: Status) => {
@@ -213,7 +240,10 @@ function SuperAdminPage() {
       <PageHeader
         title="Empresas clientes"
         subtitle="Cadastre empresas, crie o administrador delas e controle a mensalidade"
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4" /> Nova empresa</Button>}
+        actions={<div className="flex gap-2">
+          <Button variant="outline" onClick={openResetByEmail}><KeyRound className="h-4 w-4" /> Trocar senha</Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4" /> Nova empresa</Button>
+        </div>}
       />
 
       <div className="flex flex-wrap gap-2">
@@ -235,10 +265,13 @@ function SuperAdminPage() {
             {superAdmins.map((u) => (
               <div key={u.id} className="flex items-center gap-2 border border-border/60 rounded-lg p-2 text-xs">
                 <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{u.full_name || "Sem nome"}</div>
                   <div className="text-muted-foreground truncate">{u.email}</div>
                 </div>
+                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openResetForUser(u)} title="Trocar senha">
+                  <KeyRound className="h-3 w-3" />
+                </Button>
               </div>
             ))}
           </div>
@@ -265,6 +298,7 @@ function SuperAdminPage() {
             onActivate={() => changeStatus.mutate({ id: c.id, status: "active" })}
             onOverdue={() => changeStatus.mutate({ id: c.id, status: "overdue" })}
             fetchAdmins={() => listAdminsFn({ data: { company_id: c.id } })}
+            onResetPassword={openResetForUser}
           />
         ))}
       </div>
@@ -365,6 +399,53 @@ function SuperAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Trocar senha */}
+      <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Trocar senha{pwdForm.label ? ` — ${pwdForm.label}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>E-mail do usuário *</Label>
+              <Input
+                type="email"
+                value={pwdForm.email}
+                disabled={!!pwdForm.user_id}
+                onChange={(e) => setPwdForm({ ...pwdForm, email: e.target.value })}
+                placeholder="usuario@empresa.com"
+              />
+              {!pwdForm.user_id && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Funciona para qualquer usuário do sistema (admin, vigia, supervisor…).
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Nova senha *</Label>
+              <Input
+                type="text"
+                minLength={8}
+                value={pwdForm.password}
+                onChange={(e) => setPwdForm({ ...pwdForm, password: e.target.value })}
+                placeholder="mín. 8 caracteres"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwdOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => resetPwd.mutate()}
+              disabled={resetPwd.isPending || (!pwdForm.user_id && !pwdForm.email) || pwdForm.password.length < 8}
+            >
+              Salvar nova senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -378,7 +459,7 @@ function stripAdmin(f: FormState) {
 }
 
 function CompanyCard({
-  c, statusPill, onEdit, onAddAdmin, onPay, onSuspend, onActivate, onOverdue, fetchAdmins,
+  c, statusPill, onEdit, onAddAdmin, onPay, onSuspend, onActivate, onOverdue, fetchAdmins, onResetPassword,
 }: {
   c: Company;
   statusPill: (s: Status) => React.ReactNode;
@@ -389,6 +470,7 @@ function CompanyCard({
   onActivate: () => void;
   onOverdue: () => void;
   fetchAdmins: () => Promise<Array<{ id: string; full_name: string; email: string | null }>>;
+  onResetPassword: (u: { id: string; email: string | null; full_name?: string | null }) => void;
 }) {
   const { data: admins } = useQuery({
     queryKey: ["company-admins", c.id],
@@ -445,7 +527,17 @@ function CompanyCard({
         ) : (
           <ul className="space-y-0.5">
             {admins!.map((a) => (
-              <li key={a.id} className="truncate text-muted-foreground">{a.full_name} <span className="opacity-70">— {a.email}</span></li>
+              <li key={a.id} className="flex items-center gap-1 text-muted-foreground">
+                <span className="truncate flex-1">{a.full_name} <span className="opacity-70">— {a.email}</span></span>
+                <button
+                  type="button"
+                  onClick={() => onResetPassword(a)}
+                  className="text-primary hover:underline text-[11px] shrink-0"
+                  title="Trocar senha desse admin"
+                >
+                  <KeyRound className="h-3 w-3 inline" /> senha
+                </button>
+              </li>
             ))}
           </ul>
         )}
