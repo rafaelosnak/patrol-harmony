@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { createEmployee, deleteEmployee, updateEmployee, updateEmployeeRole, resetEmployeePassword, type EmployeeProfileInput } from "@/lib/employees.functions";
+import { lookupCep, fmtCep } from "@/lib/cep";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -426,7 +427,29 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
       <div>
         <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Endereço</div>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <div className="md:col-span-2"><Label>CEP</Label><Input value={value.address_zip ?? ""} onChange={(e) => onChange({ address_zip: e.target.value })} /></div>
+          <div className="md:col-span-2">
+            <Label>CEP</Label>
+            <Input
+              value={value.address_zip ?? ""}
+              placeholder="00000-000"
+              maxLength={9}
+              onChange={(e) => onChange({ address_zip: fmtCep(e.target.value) })}
+              onBlur={async (e) => {
+                const r = await lookupCep(e.target.value);
+                if (r) {
+                  onChange({
+                    address_street: r.street ?? value.address_street ?? "",
+                    address_district: r.district ?? value.address_district ?? "",
+                    address_city: r.city ?? value.address_city ?? "",
+                    address_state: r.state ?? value.address_state ?? "",
+                  });
+                  toast.success("Endereço preenchido pelo CEP");
+                } else if (e.target.value.replace(/\D/g, "").length === 8) {
+                  toast.error("CEP não encontrado");
+                }
+              }}
+            />
+          </div>
           <div className="md:col-span-4"><Label>Rua</Label><Input value={value.address_street ?? ""} onChange={(e) => onChange({ address_street: e.target.value })} /></div>
           <div className="md:col-span-1"><Label>Número</Label><Input value={value.address_number ?? ""} onChange={(e) => onChange({ address_number: e.target.value })} /></div>
           <div className="md:col-span-2"><Label>Complemento</Label><Input value={value.address_complement ?? ""} onChange={(e) => onChange({ address_complement: e.target.value })} /></div>

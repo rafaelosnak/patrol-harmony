@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { distanceMeters } from "@/lib/cep";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   component: PontoPage,
@@ -38,6 +39,36 @@ function fmtTime(iso: string) {
 }
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+async function checkPunchGeofence(userId: string, companyId: string, lat: number, lng: number, type: PunchType) {
+  const { data } = await supabase
+    .from("client_employees")
+    .select("client_id, clients!inner(id,name,latitude,longitude,geofence_radius_meters)")
+    .eq("user_id", userId);
+  const list = (data ?? []) as Array<{ clients: { id: string; name: string; latitude: number | null; longitude: number | null; geofence_radius_meters: number | null } }>;
+  const withCoords = list.filter((r) => r.clients?.latitude != null && r.clients?.longitude != null);
+  if (withCoords.length === 0) return;
+  let nearest = { name: "", dist: Infinity, radius: 150, id: "" };
+  for (const r of withCoords) {
+    const d = distanceMeters(lat, lng, r.clients.latitude!, r.clients.longitude!);
+    const radius = r.clients.geofence_radius_meters ?? 150;
+    if (d < nearest.dist) nearest = { name: r.clients.name, dist: d, radius, id: r.clients.id };
+  }
+  if (nearest.dist > nearest.radius) {
+    const meters = Math.round(nearest.dist);
+    toast.warning(`Ponto registrado FORA do perímetro do cliente (${meters}m de ${nearest.name})`);
+    await supabase.from("alerts").insert({
+      user_id: userId,
+      company_id: companyId,
+      client_id: nearest.id,
+      alert_type: "punch_out_of_area",
+      latitude: lat,
+      longitude: lng,
+      message: `Ponto (${type}) registrado a ${meters}m de ${nearest.name} (raio ${nearest.radius}m).`,
+      status: "open",
+    });
+  }
 }
 
 function PontoPage() {
@@ -117,6 +148,9 @@ function PontoPage() {
     setSelfieFor(null);
     if (error) { toast.error(error.message); return; }
     toast.success(`${STEPS.find((s) => s.type === type)?.label} registrada`);
+    if (lat != null && lng != null && companyId) {
+      void checkPunchGeofence(user.id, companyId, lat, lng, type);
+    }
     load();
   };
 

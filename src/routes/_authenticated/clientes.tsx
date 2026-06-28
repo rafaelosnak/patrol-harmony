@@ -18,6 +18,7 @@ import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { geocodeClient } from "@/lib/geocode.functions";
+import { lookupCep, fmtCep } from "@/lib/cep";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({ meta: [{ title: "Clientes — PhytonGuard" }] }),
@@ -197,14 +198,42 @@ function ClientsPage() {
                   <div><Label>{t("clients.contact")}</Label><Input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} maxLength={120} /></div>
                 </div>
 
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label>CEP</Label>
+                    <Input
+                      placeholder="00000-000"
+                      maxLength={9}
+                      onChange={(e) => {
+                        const v = fmtCep(e.target.value);
+                        e.target.value = v;
+                      }}
+                      onBlur={async (e) => {
+                        const r = await lookupCep(e.target.value);
+                        if (r) {
+                          const addr = [`${r.street ?? ""}`, r.district, r.city && `${r.city} - ${r.state ?? ""}`, r.cep]
+                            .filter(Boolean).join(", ");
+                          setForm((f) => ({ ...f, address: addr }));
+                          toast.success("Endereço preenchido pelo CEP");
+                        } else if (e.target.value.replace(/\D/g, "").length === 8) {
+                          toast.error("CEP não encontrado");
+                        }
+                      }}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Busca automática</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Endereço completo</Label>
+                    <Textarea
+                      rows={2}
+                      placeholder="Ex.: Av. Paulista, 1000 — Bela Vista, São Paulo - SP"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Endereço completo</Label>
-                  <Textarea
-                    rows={2}
-                    placeholder="Ex.: Av. Paulista, 1000 — Bela Vista, São Paulo - SP"
-                    value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  />
+                  {/* preview */}
                   {form.address.trim() && (
                     <div className="mt-2 space-y-2">
                       <div className="flex gap-2">
