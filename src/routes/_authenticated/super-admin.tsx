@@ -480,7 +480,17 @@ function CompanyCard({
         ) : (
           <ul className="space-y-0.5">
             {admins!.map((a) => (
-              <li key={a.id} className="truncate text-muted-foreground">{a.full_name} <span className="opacity-70">— {a.email}</span></li>
+              <li key={a.id} className="flex items-center gap-1 text-muted-foreground">
+                <span className="truncate flex-1">{a.full_name} <span className="opacity-70">— {a.email}</span></span>
+                <button
+                  type="button"
+                  onClick={() => onResetPassword(a)}
+                  className="text-primary hover:underline text-[11px] shrink-0"
+                  title="Trocar senha desse admin"
+                >
+                  <KeyRound className="h-3 w-3 inline" /> senha
+                </button>
+              </li>
             ))}
           </ul>
         )}
