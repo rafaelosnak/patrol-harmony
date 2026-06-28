@@ -240,7 +240,10 @@ function SuperAdminPage() {
       <PageHeader
         title="Empresas clientes"
         subtitle="Cadastre empresas, crie o administrador delas e controle a mensalidade"
-        actions={<Button onClick={openNew}><Plus className="h-4 w-4" /> Nova empresa</Button>}
+        actions={<div className="flex gap-2">
+          <Button variant="outline" onClick={openResetByEmail}><KeyRound className="h-4 w-4" /> Trocar senha</Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4" /> Nova empresa</Button>
+        </div>}
       />
 
       <div className="flex flex-wrap gap-2">
