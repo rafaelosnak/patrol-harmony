@@ -738,20 +738,22 @@ function LocationsDialog({
       if (!name.trim()) throw new Error("Informe o nome do ponto");
       if (!clientId) throw new Error("Selecione o cliente do ponto");
       const pos = await getPosition();
+      if (!pos) throw new Error("GPS necessário — autorize a localização para registrar o ponto exato.");
       const { error } = await supabase.from("checkpoint_locations").insert({
         name: name.trim(),
         description: description.trim() || null,
         client_id: clientId,
-        lat: pos?.coords.latitude ?? null,
-        lng: pos?.coords.longitude ?? null,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        radius_meters: radius,
         created_by: user?.id ?? null,
         company_id: companyId!,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Ponto cadastrado");
-      setName(""); setDescription("");
+      toast.success("Ponto cadastrado com GPS exato");
+      setName(""); setDescription(""); setRadius(80);
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-all"] });
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-active"] });
     },
