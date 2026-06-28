@@ -168,8 +168,9 @@ function PontoPage() {
                     className="w-full mt-1"
                     variant={isNext ? "default" : "outline"}
                     disabled={!isNext || punching === s.type}
-                    onClick={() => punch(s.type)}
+                    onClick={() => setSelfieFor(s.type)}
                   >
+                    <ScanFace className="h-3 w-3 mr-1" />
                     {punching === s.type ? "Registrando..." : isNext ? "Bater ponto" : "Aguardando"}
                   </Button>
                 )}
