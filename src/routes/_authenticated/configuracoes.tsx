@@ -109,7 +109,7 @@ function ShiftHoursCard({ companyId }: { companyId: string }) {
     (["shift_a_start","shift_a_end","shift_b_start","shift_b_end","shift_c_start","shift_c_end"] as const).forEach((k) => {
       payload[k] = v(k, "00:00");
     });
-    const { error } = await supabase.from("companies").update(payload).eq("id", companyId);
+    const { error } = await supabase.from("companies").update(payload as never).eq("id", companyId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Horários dos turnos atualizados");
