@@ -364,6 +364,8 @@ function RoundsPage() {
       />
 
       <LocationsDialog open={openLocations} onClose={() => setOpenLocations(false)} canEdit={isStaff} />
+
+      <TrackDialog round={trackRound} onClose={() => setTrackRound(null)} userName={trackRound ? (names?.[trackRound.user_id] ?? "—") : ""} />
     </div>
   );
 }
