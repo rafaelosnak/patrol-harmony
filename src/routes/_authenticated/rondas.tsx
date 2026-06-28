@@ -83,8 +83,8 @@ function RoundsPage() {
   const [openLocations, setOpenLocations] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [startVehicleId, setStartVehicleId] = useState<string>("");
-  const [startTotal, setStartTotal] = useState<number>(6);
-  const [startTrajeto, setStartTrajeto] = useState<string>("");
+  const [startClientId, setStartClientId] = useState<string>("");
+  const [startMode, setStartMode] = useState<"auto" | "checkpoints" | "track">("auto");
   const [trackRound, setTrackRound] = useState<RoundRow | null>(null);
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
