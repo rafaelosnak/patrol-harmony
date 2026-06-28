@@ -163,6 +163,15 @@ function RoundsPage() {
     },
   });
 
+
+  const { data: clientsList } = useQuery({
+    queryKey: ["clients-min-rounds"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id,name,default_round_mode").order("name");
+      return (data ?? []) as { id: string; name: string; default_round_mode: string | null }[];
+    },
+  });
+
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles-active"],
     queryFn: async () => {
@@ -173,25 +182,44 @@ function RoundsPage() {
   const vehicleMap: Record<string, string> = {};
   (vehicles ?? []).forEach((v) => { vehicleMap[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
 
+  const selectedClient = (clientsList ?? []).find((c) => c.id === startClientId);
+  const effectiveMode: "checkpoints" | "track" =
+    startMode === "auto"
+      ? ((selectedClient?.default_round_mode as "checkpoints" | "track" | null) ?? "checkpoints")
+      : startMode;
+
   const start = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      const total = Math.max(1, Math.min(50, Number(startTotal) || 6));
+      if (!startClientId) throw new Error("Selecione o cliente");
+      let total = 0;
+      if (effectiveMode === "checkpoints") {
+        const { count } = await supabase
+          .from("checkpoint_locations")
+          .select("id", { count: "exact", head: true })
+          .eq("active", true)
+          .eq("client_id", startClientId);
+        total = count ?? 0;
+        if (total === 0) throw new Error("Cliente não tem pontos cadastrados. Peça ao admin para cadastrar pontos.");
+      }
       const { data, error } = await supabase.from("rounds").insert({
-        user_id: user.id, checkpoints_total: total, checkpoints_done: 0,
+        user_id: user.id,
+        checkpoints_total: total,
+        checkpoints_done: 0,
         vehicle_id: startVehicleId || null,
-        notes: startTrajeto.trim() || null,
+        client_id: startClientId,
+        mode: effectiveMode,
         company_id: companyId!,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
     },
     onSuccess: (row) => {
-      toast.success("Ronda iniciada");
+      toast.success(row.mode === "track" ? "Ronda iniciada — gravando trajeto por GPS" : "Ronda iniciada — registre os pontos");
       qc.invalidateQueries({ queryKey: ["rounds"] });
       setStartOpen(false);
-      setStartVehicleId(""); setStartTotal(6); setStartTrajeto("");
-      setOpenRound(row);
+      setStartVehicleId(""); setStartClientId(""); setStartMode("auto");
+      if (row.mode === "checkpoints") setOpenRound(row);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao iniciar ronda"),
   });
