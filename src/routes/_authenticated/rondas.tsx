@@ -109,6 +109,7 @@ function RoundsPage() {
   });
 
   // GPS tracking for active rounds owned by the current user.
+  const lastGeofenceAlertRef = useRef<number>(0);
   useEffect(() => {
     if (!user) return;
     const mine = (rounds ?? []).find((r) => r.user_id === user.id && r.status === "in_progress");
@@ -120,14 +121,33 @@ function RoundsPage() {
           lat: pos.coords.latitude, lng: pos.coords.longitude,
           t: Date.now(), acc: pos.coords.accuracy,
         };
+        // Geofence check for track-mode rounds against client location
+        if (mine.client_id) {
+          const { data: cli } = await supabase
+            .from("clients")
+            .select("latitude,longitude,geofence_radius_meters,name")
+            .eq("id", mine.client_id).maybeSingle();
+          if (cli?.latitude != null && cli?.longitude != null) {
+            const d = distMeters(point, { lat: cli.latitude as number, lng: cli.longitude as number });
+            const radius = (cli.geofence_radius_meters as number) ?? 150;
+            if (d > radius && Date.now() - lastGeofenceAlertRef.current > 5 * 60 * 1000) {
+              lastGeofenceAlertRef.current = Date.now();
+              await supabase.from("alerts").insert({
+                user_id: user.id,
+                alert_type: "geofence_exit",
+                message: `Vigia saiu da área de ${cli.name} (${Math.round(d)}m do ponto, raio ${radius}m).`,
+                latitude: point.lat, longitude: point.lng,
+                client_id: mine.client_id, company_id: companyId!,
+              });
+            }
+          }
+        }
         const { data: cur } = await supabase.from("rounds").select("track").eq("id", mine.id).maybeSingle();
         const prev = (cur?.track as unknown as TrackPoint[] | null) ?? [];
         const last = prev[prev.length - 1];
         if (last) {
           const dt = point.t - last.t;
-          const dx = (point.lat - last.lat) * 111000;
-          const dy = (point.lng - last.lng) * 111000 * Math.cos((point.lat * Math.PI) / 180);
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dist = distMeters(point, last);
           if (dt < 10000 || dist < 8) return;
         }
         await supabase.from("rounds").update({ track: [...prev, point] as unknown as never }).eq("id", mine.id);
@@ -136,7 +156,8 @@ function RoundsPage() {
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [user, rounds]);
+  }, [user, rounds, companyId]);
+
 
   const userIds = Array.from(new Set((rounds ?? []).map((r) => r.user_id)));
   const { data: names } = useQuery({
