@@ -225,6 +225,30 @@ function ClientsPage() {
                     </div>
                   )}
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="flex items-center gap-1"><Navigation className="h-3 w-3" /> Localização exata (GPS)</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        readOnly
+                        value={form.latitude != null && form.longitude != null ? `${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}` : ""}
+                        placeholder="Use o endereço ou capture no local"
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={captureLocation} disabled={gpsLoading}>
+                        {gpsLoading ? "..." : "Capturar GPS"}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Raio de tolerância (m)</Label>
+                    <Input
+                      type="number" min={20} max={2000}
+                      value={form.geofence_radius_meters}
+                      onChange={(e) => setForm({ ...form, geofence_radius_meters: Number(e.target.value) || 150 })}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Alerta se vigia bater fora dessa distância.</p>
+                  </div>
+                </div>
                 <div>
                   <Label>Como o vigia registra a ronda neste cliente?</Label>
                   <Select value={form.default_round_mode} onValueChange={(v) => setForm({ ...form, default_round_mode: v })}>
