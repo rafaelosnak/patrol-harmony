@@ -188,3 +188,21 @@ export const listCompanyAdmins = createServerFn({ method: "POST" })
     const adminIds = new Set((roles ?? []).map((r) => r.user_id));
     return (profiles ?? []).filter((p) => adminIds.has(p.id));
   });
+
+export const listSuperAdmins = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "super_admin");
+    const ids = (roles ?? []).map((r) => r.user_id);
+    if (ids.length === 0) return [];
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email, created_at")
+      .in("id", ids);
+    return profiles ?? [];
+  });
