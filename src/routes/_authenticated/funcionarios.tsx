@@ -410,15 +410,13 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
             </Select>
           </div>
           <div>
-            <Label>Período de trabalho</Label>
-            <Select value={value.work_period ?? "integral"} onValueChange={(v) => onChange({ work_period: v })}>
+            <Label>Turno (A / B / C)</Label>
+            <Select value={value.work_period ?? "A"} onValueChange={(v) => onChange({ work_period: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="manha">Manhã</SelectItem>
-                <SelectItem value="tarde">Tarde</SelectItem>
-                <SelectItem value="noite">Noite</SelectItem>
-                <SelectItem value="madrugada">Madrugada</SelectItem>
-                <SelectItem value="integral">Integral / Diurno</SelectItem>
+                <SelectItem value="A">Turno A</SelectItem>
+                <SelectItem value="B">Turno B</SelectItem>
+                <SelectItem value="C">Turno C</SelectItem>
               </SelectContent>
             </Select>
           </div>
