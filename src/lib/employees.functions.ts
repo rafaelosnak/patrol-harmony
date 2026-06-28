@@ -147,3 +147,25 @@ export const deleteEmployee = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const resetEmployeePassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { user_id: string; password: string }) => {
+    if (!input.user_id) throw new Error("Usuário obrigatório");
+    if (!input.password || input.password.length < 8) throw new Error("Senha deve ter ao menos 8 caracteres");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: isAllowed } = await context.supabase.rpc("is_supervisor_or_admin", { _user_id: context.userId });
+    if (!isAllowed) throw new Error("Apenas administradores podem alterar senha de funcionários");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Ensure target user is in same company
+    const { data: callerCompany } = await context.supabase.rpc("get_user_company", { _user_id: context.userId });
+    const { data: targetProfile } = await supabaseAdmin.from("profiles").select("company_id").eq("id", data.user_id).maybeSingle();
+    if (!targetProfile || (targetProfile as { company_id: string | null }).company_id !== callerCompany) {
+      throw new Error("Funcionário não pertence à sua empresa");
+    }
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, { password: data.password });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
