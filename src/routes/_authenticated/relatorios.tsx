@@ -139,8 +139,7 @@ const sb = supabase as unknown as {
 };
 
 function ReportsPage() {
-  const { allowed } = useStaffGuard();
-  if (!allowed) return null;
+  useStaffGuard();
   const { t } = useI18n();
   const [openKey, setOpenKey] = useState<ReportKey | null>(null);
 

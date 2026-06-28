@@ -25,8 +25,7 @@ export const Route = createFileRoute("/_authenticated/comunicados")({
 type Ann = { id: string; title: string; body: string; audience: string; created_at: string; author_id: string };
 
 function AnnPage() {
-  const { allowed } = useStaffGuard();
-  if (!allowed) return null;
+  useStaffGuard();
   const { t } = useI18n();
   const { user, isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");
