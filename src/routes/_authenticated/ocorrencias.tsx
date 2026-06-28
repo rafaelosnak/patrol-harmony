@@ -269,3 +269,24 @@ function OccPage() {
     </div>
   );
 }
+
+function MediaCell({ url, type }: { url: string | null; type: string | null }) {
+  const { data: signed } = useQuery({
+    queryKey: ["occ-media", url],
+    enabled: !!url,
+    queryFn: async () => {
+      const { data } = await supabase.storage.from("occurrence-media").createSignedUrl(url!, 3600);
+      return data?.signedUrl ?? null;
+    },
+  });
+  if (!url) return <span className="text-muted-foreground text-xs">—</span>;
+  if (!signed) return <span className="text-muted-foreground text-xs">…</span>;
+  if (type === "video") {
+    return <a href={signed} target="_blank" rel="noreferrer" className="text-primary text-xs hover:underline">🎥 Ver vídeo</a>;
+  }
+  return (
+    <a href={signed} target="_blank" rel="noreferrer">
+      <img src={signed} alt="Mídia" className="h-10 w-10 object-cover rounded border border-border/60" />
+    </a>
+  );
+}
