@@ -42,6 +42,7 @@ function loadMaps(): Promise<typeof google> {
 type Layers = { alerts: boolean; clients: boolean; vehicles: boolean };
 
 function MapPage() {
+  useNoVigiaGuard();
   const { t } = useI18n();
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
