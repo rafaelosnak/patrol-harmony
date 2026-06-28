@@ -399,6 +399,53 @@ function SuperAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Trocar senha */}
+      <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Trocar senha{pwdForm.label ? ` — ${pwdForm.label}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>E-mail do usuário *</Label>
+              <Input
+                type="email"
+                value={pwdForm.email}
+                disabled={!!pwdForm.user_id}
+                onChange={(e) => setPwdForm({ ...pwdForm, email: e.target.value })}
+                placeholder="usuario@empresa.com"
+              />
+              {!pwdForm.user_id && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Funciona para qualquer usuário do sistema (admin, vigia, supervisor…).
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Nova senha *</Label>
+              <Input
+                type="text"
+                minLength={8}
+                value={pwdForm.password}
+                onChange={(e) => setPwdForm({ ...pwdForm, password: e.target.value })}
+                placeholder="mín. 8 caracteres"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwdOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => resetPwd.mutate()}
+              disabled={resetPwd.isPending || (!pwdForm.user_id && !pwdForm.email) || pwdForm.password.length < 8}
+            >
+              Salvar nova senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
