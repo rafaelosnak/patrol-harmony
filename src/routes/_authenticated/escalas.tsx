@@ -47,7 +47,7 @@ function ShiftsPage() {
       return (await q).data ?? [];
     },
   });
-  const { data: people } = useQuery({ queryKey: ["profiles-min"], queryFn: async () => (await supabase.from("profiles").select("id,full_name")).data ?? [] });
+  const { data: people } = useQuery({ queryKey: ["profiles-min-shift"], queryFn: async () => (await supabase.from("profiles").select("id,full_name,default_shift_type,work_period")).data ?? [] });
   const { data: clients } = useQuery({ queryKey: ["clients-min"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
 
   const profileMap: Record<string, string> = {};
@@ -112,9 +112,15 @@ function ShiftsPage() {
               <div className="space-y-3">
                 <div>
                   <Label>{t("common.name")}</Label>
-                  <Select value={form.user_id} onValueChange={(v) => setForm({ ...form, user_id: v })}>
+                  <Select value={form.user_id} onValueChange={(v) => {
+                    const p = (people ?? []).find((x) => x.id === v) as { default_shift_type?: string | null } | undefined;
+                    setForm({ ...form, user_id: v, shift_type: (!editing && p?.default_shift_type) ? p.default_shift_type : form.shift_type });
+                  }}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{(people ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(people ?? []).map((p) => {
+                      const meta = [p.default_shift_type, p.work_period].filter(Boolean).join(" · ");
+                      return <SelectItem key={p.id} value={p.id}>{p.full_name}{meta ? ` (${meta})` : ""}</SelectItem>;
+                    })}</SelectContent>
                   </Select>
                 </div>
                 <div>

@@ -19,6 +19,8 @@ export interface EmployeeProfileInput {
   address_zip?: string | null;
   notes?: string | null;
   avatar_url?: string | null;
+  default_shift_type?: string | null;
+  work_period?: string | null;
 }
 
 async function syncClientAssignments(
@@ -78,6 +80,8 @@ export const createEmployee = createServerFn({ method: "POST" })
       address_zip: data.address_zip ?? null,
       notes: data.notes ?? null,
       avatar_url: data.avatar_url ?? null,
+      default_shift_type: data.default_shift_type ?? null,
+      work_period: data.work_period ?? null,
     };
     await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", uid);
 
@@ -114,6 +118,8 @@ export const updateEmployee = createServerFn({ method: "POST" })
       address_zip: rest.address_zip ?? null,
       notes: rest.notes ?? null,
       avatar_url: rest.avatar_url ?? null,
+      default_shift_type: rest.default_shift_type ?? null,
+      work_period: rest.work_period ?? null,
     }).eq("id", user_id);
     if (error) throw new Error(error.message);
 
