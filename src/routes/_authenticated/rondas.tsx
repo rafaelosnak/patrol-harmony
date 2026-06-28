@@ -742,3 +742,66 @@ function LocationsDialog({
     </Dialog>
   );
 }
+
+function TrackDialog({ round, onClose, userName }: { round: RoundRow | null; onClose: () => void; userName: string }) {
+  const open = !!round;
+  const points = (round?.track ?? []) as TrackPoint[];
+  const distance = (() => {
+    let m = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const dx = (b.lat - a.lat) * 111000;
+      const dy = (b.lng - a.lng) * 111000 * Math.cos((b.lat * Math.PI) / 180);
+      m += Math.sqrt(dx * dx + dy * dy);
+    }
+    return m;
+  })();
+  const mapsHref = points.length > 0
+    ? `https://www.google.com/maps/dir/${points.map((p) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join("/")}`
+    : null;
+  const staticMap = points.length > 0
+    ? (() => {
+        // limit to 80 points to fit URL
+        const sample = points.length > 80
+          ? points.filter((_, i) => i % Math.ceil(points.length / 80) === 0)
+          : points;
+        const path = sample.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|");
+        return `https://staticmap.openstreetmap.de/staticmap.php?size=600x400&path=color:blue|weight:4|${path}`;
+      })()
+    : null;
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Trajeto da ronda — {userName}</DialogTitle>
+          <DialogDescription>
+            {points.length} pontos registrados • {(distance / 1000).toFixed(2)} km percorridos
+          </DialogDescription>
+        </DialogHeader>
+        {points.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Nenhum ponto GPS gravado nesta ronda.</p>
+        ) : (
+          <div className="space-y-3">
+            {staticMap && (
+              <img src={staticMap} alt="Trajeto" className="w-full rounded-md border border-border/60" />
+            )}
+            {mapsHref && (
+              <a href={mapsHref} target="_blank" rel="noreferrer" className="text-primary text-sm hover:underline inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Abrir trajeto no Google Maps
+              </a>
+            )}
+            <div className="max-h-48 overflow-y-auto rounded-md border border-border/60 text-xs font-mono">
+              {points.map((p, i) => (
+                <div key={i} className="px-2 py-1 border-b border-border/40 last:border-b-0 flex justify-between">
+                  <span>{new Date(p.t).toLocaleTimeString()}</span>
+                  <span>{p.lat.toFixed(5)}, {p.lng.toFixed(5)}</span>
+                  <span className="text-muted-foreground">±{Math.round(p.acc ?? 0)}m</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
