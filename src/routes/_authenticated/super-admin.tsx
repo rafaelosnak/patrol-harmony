@@ -412,7 +412,7 @@ function stripAdmin(f: FormState) {
 }
 
 function CompanyCard({
-  c, statusPill, onEdit, onAddAdmin, onPay, onSuspend, onActivate, onOverdue, fetchAdmins,
+  c, statusPill, onEdit, onAddAdmin, onPay, onSuspend, onActivate, onOverdue, fetchAdmins, onResetPassword,
 }: {
   c: Company;
   statusPill: (s: Status) => React.ReactNode;
@@ -423,6 +423,7 @@ function CompanyCard({
   onActivate: () => void;
   onOverdue: () => void;
   fetchAdmins: () => Promise<Array<{ id: string; full_name: string; email: string | null }>>;
+  onResetPassword: (u: { id: string; email: string | null; full_name?: string | null }) => void;
 }) {
   const { data: admins } = useQuery({
     queryKey: ["company-admins", c.id],
