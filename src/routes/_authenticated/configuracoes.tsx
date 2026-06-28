@@ -80,9 +80,74 @@ function SettingsPage() {
 
         <ChangePasswordCard />
       </div>
+
+      {!isSuperAdmin && roles.includes("admin") && companyId && <ShiftHoursCard companyId={companyId} />}
     </div>
   );
 }
+
+function ShiftHoursCard({ companyId }: { companyId: string }) {
+  const { data, refetch } = useQuery({
+    queryKey: ["company-shift-hours", companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("companies")
+        .select("shift_a_start,shift_a_end,shift_b_start,shift_b_end,shift_c_start,shift_c_end")
+        .eq("id", companyId)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const v = (k: string, fallback: string) => form[k] ?? (data?.[k as keyof typeof data] as string | null)?.slice(0, 5) ?? fallback;
+
+  const save = async () => {
+    setSaving(true);
+    const payload: Record<string, string> = {};
+    (["shift_a_start","shift_a_end","shift_b_start","shift_b_end","shift_c_start","shift_c_end"] as const).forEach((k) => {
+      payload[k] = v(k, "00:00");
+    });
+    const { error } = await supabase.from("companies").update(payload as never).eq("id", companyId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Horários dos turnos atualizados");
+    setForm({});
+    refetch();
+  };
+
+  const Row = ({ label, sk, ek }: { label: string; sk: string; ek: string }) => (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+      <div className="text-sm font-medium">{label}</div>
+      <div>
+        <Label className="text-xs">Início</Label>
+        <Input type="time" value={v(sk, "")} onChange={(e) => setForm((f) => ({ ...f, [sk]: e.target.value }))} />
+      </div>
+      <div>
+        <Label className="text-xs">Fim</Label>
+        <Input type="time" value={v(ek, "")} onChange={(e) => setForm((f) => ({ ...f, [ek]: e.target.value }))} />
+      </div>
+    </div>
+  );
+
+  return (
+    <section className="glass rounded-xl p-5 space-y-3">
+      <h3 className="text-sm font-semibold flex items-center gap-2"><SettingsIcon className="h-4 w-4" />Horários dos Turnos (A / B / C)</h3>
+      <p className="text-xs text-muted-foreground">Defina o intervalo de cada turno. Esses horários são usados para identificar em qual turno cada funcionário trabalha.</p>
+      <div className="space-y-3">
+        <Row label="Turno A" sk="shift_a_start" ek="shift_a_end" />
+        <Row label="Turno B" sk="shift_b_start" ek="shift_b_end" />
+        <Row label="Turno C" sk="shift_c_start" ek="shift_c_end" />
+      </div>
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={saving || Object.keys(form).length === 0}>{saving ? "Salvando..." : "Salvar horários"}</Button>
+      </div>
+    </section>
+  );
+}
+
+
 
 function ChangePasswordCard() {
   const [pwd, setPwd] = useState("");
