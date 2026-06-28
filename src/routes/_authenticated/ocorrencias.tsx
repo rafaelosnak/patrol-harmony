@@ -179,8 +179,8 @@ function OccPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
-            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={6}><EmptyState icon={AlertOctagon} title={t("common.empty")} /></td></tr>}
+            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t("common.loading")}</td></tr>}
+            {!isLoading && (data ?? []).length === 0 && <tr><td colSpan={7}><EmptyState icon={AlertOctagon} title={t("common.empty")} /></td></tr>}
             {(data ?? []).map((o) => (
               <tr key={o.id} className="hover:bg-accent/30">
                 <td className="px-4 py-3 font-medium">{o.title}</td>
