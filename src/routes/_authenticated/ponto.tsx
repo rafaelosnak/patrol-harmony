@@ -23,6 +23,7 @@ type Entry = {
   punched_at: string;
   latitude: number | null;
   longitude: number | null;
+  selfie_url: string | null;
 };
 
 const STEPS: { type: PunchType; label: string; icon: typeof LogIn; color: string }[] = [
