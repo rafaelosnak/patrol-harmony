@@ -487,23 +487,49 @@ function CheckpointsDialog({
       }
 
       const chosen = locations?.find((l) => l.id === locationId);
+      const lat = pos?.coords.latitude ?? chosen?.lat ?? null;
+      const lng = pos?.coords.longitude ?? chosen?.lng ?? null;
+
+      // Geofence check: if location has coords + radius, compare to current GPS
+      let outside: boolean | null = null;
+      let distance: number | null = null;
+      if (chosen?.lat != null && chosen?.lng != null && pos) {
+        distance = distMeters(
+          { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          { lat: chosen.lat, lng: chosen.lng },
+        );
+        outside = distance > (chosen.radius_meters ?? 80);
+      }
+
       const { error } = await supabase.from("round_checkpoints").insert({
         round_id: round.id,
         user_id: currentUserId,
         label: chosen?.name ?? (label.trim() || null),
         notes: notes.trim() || null,
-        lat: pos?.coords.latitude ?? chosen?.lat ?? null,
-        lng: pos?.coords.longitude ?? chosen?.lng ?? null,
+        lat, lng,
         accuracy: pos?.coords.accuracy ?? null,
         photo_url,
         checkpoint_location_id: locationId || null,
+        outside_geofence: outside,
+        distance_from_target_m: distance,
         company_id: companyId!,
       });
       if (error) throw error;
-      return pos !== null;
+
+      if (outside && chosen) {
+        await supabase.from("alerts").insert({
+          user_id: currentUserId,
+          alert_type: "checkpoint_out_of_area",
+          message: `Ponto "${chosen.name}" batido fora da área (${Math.round(distance!)}m do ponto, raio ${chosen.radius_meters ?? 80}m).`,
+          latitude: lat, longitude: lng,
+          client_id: round.client_id, company_id: companyId!,
+        });
+      }
+      return { hadGps: pos !== null, outside };
     },
-    onSuccess: (hadGps) => {
-      toast.success(hadGps ? "Ponto registrado com localização" : "Ponto registrado");
+    onSuccess: ({ hadGps, outside }) => {
+      if (outside) toast.warning("Ponto registrado FORA da área — admin notificado");
+      else toast.success(hadGps ? "Ponto registrado com localização" : "Ponto registrado");
       setLabel(""); setNotes(""); setLocationId(""); setPhotoFile(null);
       if (fileRef.current) fileRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["round-checkpoints", round?.id] });
@@ -511,6 +537,7 @@ function CheckpointsDialog({
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao registrar ponto"),
   });
+
 
   const canRegister = round?.status === "in_progress" && round.user_id === currentUserId;
 
