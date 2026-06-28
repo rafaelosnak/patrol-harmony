@@ -58,7 +58,7 @@ const emptyProfile: EmployeeProfileInput = {
   address_street: "", address_number: "", address_complement: "",
   address_district: "", address_city: "", address_state: "", address_zip: "", notes: "",
   avatar_url: "",
-  default_shift_type: "12x36", work_period: "integral",
+  default_shift_type: "12x36", work_period: "A",
 };
 
 function EmployeesPage() {
@@ -120,7 +120,7 @@ function EmployeesPage() {
         address_zip: editing.address_zip ?? "", notes: editing.notes ?? "",
         avatar_url: editing.avatar_url ?? "",
         default_shift_type: editing.default_shift_type ?? "12x36",
-        work_period: editing.work_period ?? "integral",
+        work_period: editing.work_period ?? "A",
         client_ids: assignments[editing.id] ?? [],
       });
     }
@@ -410,15 +410,13 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
             </Select>
           </div>
           <div>
-            <Label>Período de trabalho</Label>
-            <Select value={value.work_period ?? "integral"} onValueChange={(v) => onChange({ work_period: v })}>
+            <Label>Turno (A / B / C)</Label>
+            <Select value={value.work_period ?? "A"} onValueChange={(v) => onChange({ work_period: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="manha">Manhã</SelectItem>
-                <SelectItem value="tarde">Tarde</SelectItem>
-                <SelectItem value="noite">Noite</SelectItem>
-                <SelectItem value="madrugada">Madrugada</SelectItem>
-                <SelectItem value="integral">Integral / Diurno</SelectItem>
+                <SelectItem value="A">Turno A</SelectItem>
+                <SelectItem value="B">Turno B</SelectItem>
+                <SelectItem value="C">Turno C</SelectItem>
               </SelectContent>
             </Select>
           </div>
