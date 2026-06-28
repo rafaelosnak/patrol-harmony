@@ -42,6 +42,8 @@ type Row = {
   status: string;
   role: AppRole | null;
   avatar_url: string | null;
+  default_shift_type: string | null;
+  work_period: string | null;
 };
 
 const ROLES: { value: AppRole; label: string }[] = [
