@@ -24,6 +24,7 @@ type AppRole = "admin" | "supervisor" | "vigia" | "central";
 type Member = { id: string; full_name: string; email: string | null; status: string; created_at: string; roles: AppRole[] };
 
 function TeamsPage() {
+  useNoVigiaGuard();
   const { t } = useI18n();
   const { isStaff } = useAuth();
   const qc = useQueryClient();
