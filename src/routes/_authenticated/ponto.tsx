@@ -223,7 +223,119 @@ function PontoPage() {
           )}
         </div>
       </div>
+
+      <SelfieDialog
+        open={selfieFor !== null}
+        onClose={() => setSelfieFor(null)}
+        onCapture={(blob) => selfieFor && punch(selfieFor, blob)}
+        loading={punching !== null}
+        label={selfieFor ? STEPS.find((s) => s.type === selfieFor)?.label ?? "" : ""}
+      />
     </div>
+  );
+}
+
+function SelfieDialog({
+  open, onClose, onCapture, loading, label,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCapture: (blob: Blob) => void;
+  loading: boolean;
+  label: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const previewBlob = useRef<Blob | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setPreview(null);
+    previewBlob.current = null;
+    setError(null);
+    (async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: 640, height: 480 },
+          audio: false,
+        });
+        setStream(s);
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          await videoRef.current.play().catch(() => {});
+        }
+      } catch (e) {
+        setError("Não foi possível acessar a câmera. Permita o acesso para bater o ponto.");
+      }
+    })();
+    return () => {
+      setStream((curr) => { curr?.getTracks().forEach((t) => t.stop()); return null; });
+    };
+  }, [open]);
+
+  const capture = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = v.videoWidth || 640;
+    canvas.height = v.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((b) => {
+      if (!b) return;
+      previewBlob.current = b;
+      setPreview(URL.createObjectURL(b));
+    }, "image/jpeg", 0.85);
+  };
+
+  const confirm = () => {
+    if (previewBlob.current) onCapture(previewBlob.current);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ScanFace className="h-4 w-4" /> Reconhecimento facial — {label}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {error && <p className="text-sm text-rose-400">{error}</p>}
+          <div className="relative rounded-xl overflow-hidden border border-border/60 bg-black aspect-[4/3]">
+            {preview ? (
+              <img src={preview} alt="Selfie" className="w-full h-full object-cover" />
+            ) : (
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover [transform:scaleX(-1)]" />
+            )}
+            <div className="absolute inset-0 pointer-events-none border-[3px] border-primary/40 rounded-xl m-8" />
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Centralize seu rosto na moldura e capture a foto para confirmar o ponto.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancelar</Button>
+          {preview ? (
+            <>
+              <Button variant="ghost" onClick={() => { setPreview(null); previewBlob.current = null; }} disabled={loading}>
+                Tirar outra
+              </Button>
+              <Button onClick={confirm} disabled={loading}>
+                {loading ? "Registrando..." : "Confirmar ponto"}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={capture} disabled={!stream}>
+              <Camera className="h-4 w-4 mr-1" /> Capturar
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
