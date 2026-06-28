@@ -512,10 +512,14 @@ function AvatarUploader({ value, onChange }: { value: string; onChange: (v: stri
         <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Foto do funcionário</div>
         <p className="text-xs text-muted-foreground mb-2">Aparece no topo quando o funcionário logar.</p>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
-        <div className="flex gap-2">
+        <input ref={cameraRef} type="file" accept="image/*" capture="user" className="hidden" onChange={onPick} />
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => cameraRef.current?.click()} disabled={uploading}>
+            <Camera className="h-3 w-3" /> Tirar foto
+          </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            {value ? "Trocar foto" : "Enviar foto"}
+            {value ? "Trocar arquivo" : "Da galeria"}
           </Button>
           {value && (
             <Button type="button" size="sm" variant="ghost" onClick={() => onChange("")}>
