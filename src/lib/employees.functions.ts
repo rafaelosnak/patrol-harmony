@@ -118,6 +118,8 @@ export const updateEmployee = createServerFn({ method: "POST" })
       address_zip: rest.address_zip ?? null,
       notes: rest.notes ?? null,
       avatar_url: rest.avatar_url ?? null,
+      default_shift_type: rest.default_shift_type ?? null,
+      work_period: rest.work_period ?? null,
     }).eq("id", user_id);
     if (error) throw new Error(error.message);
 
