@@ -49,7 +49,7 @@ export function useAuth() {
   }, []);
 
   const hasRole = (r: AppRole) => roles.includes(r);
-  const isStaff = roles.some((r) => ["admin", "supervisor"].includes(r));
+  const isStaff = roles.some((r) => ["admin", "supervisor", "central"].includes(r));
   const isSuperAdmin = roles.includes("super_admin");
   const companyId = profile?.company_id ?? null;
 
