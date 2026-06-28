@@ -13,6 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { PageHeader, Pill, StatusDot } from "@/components/pg/ui";
 import { useNoVigiaGuard } from "@/hooks/use-staff-guard";
+import { useDevice } from "@/hooks/use-device";
+import { InstallPwaButton } from "@/components/install-pwa-button";
+import { Monitor, Smartphone, Tablet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — PhytonGuard" }] }),
@@ -106,16 +109,7 @@ function Dashboard() {
       <PageHeader
         title={t("dash.title")}
         subtitle={t("dash.subtitle")}
-        actions={
-          <div className="flex items-center gap-2 glass rounded-lg px-3 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-status-working opacity-75 animate-ping" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-status-working" />
-            </span>
-            <span className="text-xs font-medium">{t("dash.live")}</span>
-            <span className="text-xs text-muted-foreground font-mono">{now.toLocaleTimeString()}</span>
-          </div>
-        }
+        actions={<DashHeaderActions now={now} />}
       />
 
       {/* KPIs */}
