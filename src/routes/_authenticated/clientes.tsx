@@ -96,10 +96,10 @@ function ClientsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" }); setOpen(true); };
   const openEdit = (c: Client) => {
     setEditing(c);
-    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "" });
+    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "", default_round_mode: c.default_round_mode ?? "checkpoints" });
     setOpen(true);
   };
 
