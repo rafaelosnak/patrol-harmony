@@ -74,6 +74,9 @@ function EmployeesPage() {
   const update = useServerFn(updateEmployee);
   const remove = useServerFn(deleteEmployee);
   const updateRole = useServerFn(updateEmployeeRole);
+  const resetPwd = useServerFn(resetEmployeePassword);
+  const [pwdFor, setPwdFor] = useState<Row | null>(null);
+  const [newPwd, setNewPwd] = useState("");
 
   const [form, setForm] = useState<EmployeeProfileInput & { email: string; password: string; role: AppRole; client_ids: string[] }>({
     ...emptyProfile, email: "", password: "", role: "vigia", client_ids: [],
