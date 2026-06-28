@@ -469,6 +469,7 @@ function ProfileFields({ value, onChange }: { value: EmployeeProfileInput; onCha
 
 function AvatarUploader({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
