@@ -272,9 +272,14 @@ function EmployeesPage() {
                       </>
                     )}
                     {isAdmin && r.id !== user?.id && (
-                      <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)} aria-label="Remover">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => { setPwdFor(r); setNewPwd(""); }} aria-label="Trocar senha" title="Trocar senha">
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)} aria-label="Remover">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </TableCell>
