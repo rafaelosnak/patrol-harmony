@@ -170,6 +170,21 @@ function SuperAdminPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const resetPwd = useMutation({
+    mutationFn: async () => {
+      const payload: { user_id?: string; email?: string; password: string } = { password: pwdForm.password };
+      if (pwdForm.user_id) payload.user_id = pwdForm.user_id;
+      else payload.email = pwdForm.email;
+      return resetPwdFn({ data: payload });
+    },
+    onSuccess: (res: any) => {
+      toast.success(`Senha alterada${res?.email ? ` para ${res.email}` : ""}`);
+      setPwdOpen(false);
+      setPwdForm({ email: "", password: "" });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
+  });
+
   if (loading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
   if (!isSuperAdmin) return <Navigate to="/dashboard" />;
 
@@ -190,6 +205,14 @@ function SuperAdminPage() {
     setAdminTarget(c);
     setAdminForm({ full_name: "", email: "", password: "" });
     setAdminOpen(true);
+  };
+  const openResetByEmail = () => {
+    setPwdForm({ email: "", password: "" });
+    setPwdOpen(true);
+  };
+  const openResetForUser = (u: { id: string; email: string | null; full_name?: string | null }) => {
+    setPwdForm({ user_id: u.id, email: u.email ?? "", password: "", label: u.full_name ?? u.email ?? "" });
+    setPwdOpen(true);
   };
 
   const statusPill = (s: Status) => {
