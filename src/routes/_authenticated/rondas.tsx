@@ -91,7 +91,7 @@ function RoundsPage() {
     queryFn: async (): Promise<RoundRow[]> => {
       const { data, error } = await supabase
         .from("rounds")
-        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes")
+        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes,track")
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
