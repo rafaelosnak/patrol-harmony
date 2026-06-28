@@ -657,11 +657,11 @@ function LocationsDialog({
   const { data: items, isLoading } = useQuery({
     queryKey: ["checkpoint-locations-all"],
     enabled: open,
-    queryFn: async (): Promise<CheckpointLocation[]> => {
+    queryFn: async (): Promise<(CheckpointLocation & { client_id: string | null })[]> => {
       const { data, error } = await supabase
         .from("checkpoint_locations").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as CheckpointLocation[];
+      return (data ?? []) as unknown as (CheckpointLocation & { client_id: string | null })[];
     },
   });
 
@@ -669,19 +669,23 @@ function LocationsDialog({
     queryKey: ["clients-min-rondas"],
     enabled: open,
     queryFn: async () => {
-      const { data } = await supabase.from("clients").select("id,name").order("name");
-      return (data ?? []) as { id: string; name: string }[];
+      const { data } = await supabase.from("clients").select("id,name,default_round_mode").order("name");
+      return (data ?? []) as { id: string; name: string; default_round_mode: string | null }[];
     },
   });
+
+  const clientMap: Record<string, { name: string; mode: string | null }> = {};
+  (clients ?? []).forEach((c) => { clientMap[c.id] = { name: c.name, mode: c.default_round_mode }; });
 
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome do ponto");
+      if (!clientId) throw new Error("Selecione o cliente do ponto");
       const pos = await getPosition();
       const { error } = await supabase.from("checkpoint_locations").insert({
         name: name.trim(),
         description: description.trim() || null,
-        client_id: clientId || null,
+        client_id: clientId,
         lat: pos?.coords.latitude ?? null,
         lng: pos?.coords.longitude ?? null,
         created_by: user?.id ?? null,
@@ -691,7 +695,7 @@ function LocationsDialog({
     },
     onSuccess: () => {
       toast.success("Ponto cadastrado");
-      setName(""); setDescription(""); setClientId("");
+      setName(""); setDescription("");
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-all"] });
       qc.invalidateQueries({ queryKey: ["checkpoint-locations-active"] });
     },
@@ -711,32 +715,39 @@ function LocationsDialog({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
+  const filtered = (items ?? []).filter((l) => !clientId || l.client_id === clientId);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Pontos de ronda cadastrados</DialogTitle>
+          <DialogTitle>Pontos de ronda por cliente</DialogTitle>
           <DialogDescription>
-            Locais pré-definidos (ex.: "Praça em frente ao CDD") que aparecem para o vigia escolher.
+            Cadastre os pontos que o vigia deve percorrer em cada cliente que usa modo "Ponto a ponto".
           </DialogDescription>
         </DialogHeader>
 
-        {canEdit && (
+        <div className="space-y-2">
+          <Label className="text-xs">Cliente</Label>
+          <Select value={clientId} onValueChange={setClientId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o cliente para ver/cadastrar pontos" />
+            </SelectTrigger>
+            <SelectContent>
+              {(clients ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name} {c.default_round_mode === "track" ? "(modo: trajeto GPS)" : "(modo: ponto a ponto)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {canEdit && clientId && (
           <div className="space-y-2 rounded-lg border border-border/60 p-3">
+            <p className="text-xs text-muted-foreground">Novo ponto para <span className="font-medium text-foreground">{clientMap[clientId]?.name}</span></p>
             <Input placeholder="Nome do ponto (ex.: Praça em frente ao CDD)" value={name} onChange={(e) => setName(e.target.value)} />
             <Input placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
-            {clients && clients.length > 0 && (
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Cliente (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
             <Button className="w-full" onClick={() => create.mutate()} disabled={create.isPending}>
               <Plus className="h-4 w-4" /> Adicionar ponto (usa GPS atual)
             </Button>
@@ -745,13 +756,19 @@ function LocationsDialog({
 
         <div className="max-h-72 overflow-auto space-y-2">
           {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-          {!isLoading && (items ?? []).length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">Nenhum ponto cadastrado.</p>
+          {!isLoading && !clientId && (
+            <p className="text-sm text-muted-foreground text-center py-4">Selecione um cliente acima.</p>
           )}
-          {(items ?? []).map((l) => (
+          {!isLoading && clientId && filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum ponto cadastrado para este cliente.</p>
+          )}
+          {filtered.map((l) => (
             <div key={l.id} className="rounded-lg border border-border/60 p-3 text-sm flex items-start justify-between gap-2">
               <div className="flex-1">
                 <p className="font-medium">{l.name}</p>
+                {l.client_id && clientMap[l.client_id] && (
+                  <p className="text-xs text-primary">{clientMap[l.client_id].name}</p>
+                )}
                 {l.description && <p className="text-xs text-muted-foreground">{l.description}</p>}
                 {l.lat != null && l.lng != null && (
                   <a
