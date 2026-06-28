@@ -62,6 +62,7 @@ function ClientsPage() {
         document: form.document || null,
         contact: form.contact || null,
         address: form.address || null,
+        default_round_mode: form.default_round_mode || "checkpoints",
       };
       let clientId: string;
       if (editing) {
