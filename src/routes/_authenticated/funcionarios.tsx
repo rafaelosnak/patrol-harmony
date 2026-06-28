@@ -119,6 +119,8 @@ function EmployeesPage() {
         address_city: editing.address_city ?? "", address_state: editing.address_state ?? "",
         address_zip: editing.address_zip ?? "", notes: editing.notes ?? "",
         avatar_url: editing.avatar_url ?? "",
+        default_shift_type: editing.default_shift_type ?? "12x36",
+        work_period: editing.work_period ?? "integral",
         client_ids: assignments[editing.id] ?? [],
       });
     }
