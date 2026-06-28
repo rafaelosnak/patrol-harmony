@@ -87,6 +87,19 @@ function RoundsPage() {
   const [trackRound, setTrackRound] = useState<RoundRow | null>(null);
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
+  const { data: rounds, isLoading } = useQuery({
+    queryKey: ["rounds"],
+    queryFn: async (): Promise<RoundRow[]> => {
+      const { data, error } = await supabase
+        .from("rounds")
+        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes,track")
+        .order("started_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as RoundRow[];
+    },
+  });
+
   // GPS tracking for active rounds owned by the current user.
   useEffect(() => {
     if (!user) return;
@@ -102,7 +115,6 @@ function RoundsPage() {
         const { data: cur } = await supabase.from("rounds").select("track").eq("id", mine.id).maybeSingle();
         const prev = (cur?.track as unknown as TrackPoint[] | null) ?? [];
         const last = prev[prev.length - 1];
-        // skip if movement < 8m or < 10s elapsed
         if (last) {
           const dt = point.t - last.t;
           const dx = (point.lat - last.lat) * 111000;
@@ -117,19 +129,6 @@ function RoundsPage() {
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, [user, rounds]);
-
-  const { data: rounds, isLoading } = useQuery({
-    queryKey: ["rounds"],
-    queryFn: async (): Promise<RoundRow[]> => {
-      const { data, error } = await supabase
-        .from("rounds")
-        .select("id,user_id,client_id,vehicle_id,started_at,finished_at,status,checkpoints_done,checkpoints_total,notes,track")
-        .order("started_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data ?? []) as RoundRow[];
-    },
-  });
 
   const userIds = Array.from(new Set((rounds ?? []).map((r) => r.user_id)));
   const { data: names } = useQuery({
