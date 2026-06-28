@@ -312,6 +312,37 @@ function EmployeesPage() {
 
       {/* Documents dialog */}
       <DocumentsDialog row={docsFor} onClose={() => setDocsFor(null)} canManage={isStaff} />
+
+      {/* Password reset dialog */}
+      <Dialog open={!!pwdFor} onOpenChange={(o) => { if (!o) { setPwdFor(null); setNewPwd(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Trocar senha — {pwdFor?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Defina uma nova senha (mín. 8 caracteres). O funcionário usará esta senha no próximo login.</p>
+            <div>
+              <Label>Nova senha</Label>
+              <Input type="text" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="Mínimo 8 caracteres" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPwdFor(null); setNewPwd(""); }}>Cancelar</Button>
+            <Button
+              disabled={newPwd.length < 8 || submitting}
+              onClick={async () => {
+                if (!pwdFor) return;
+                setSubmitting(true);
+                try {
+                  await resetPwd({ data: { user_id: pwdFor.id, password: newPwd } });
+                  toast.success("Senha redefinida");
+                  setPwdFor(null); setNewPwd("");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Erro");
+                } finally { setSubmitting(false); }
+              }}
+            >Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
