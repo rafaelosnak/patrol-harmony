@@ -37,6 +37,7 @@ type RoundRow = {
   checkpoints_total: number;
   notes: string | null;
   track: TrackPoint[] | null;
+  mode?: string | null;
 };
 
 type Checkpoint = {
