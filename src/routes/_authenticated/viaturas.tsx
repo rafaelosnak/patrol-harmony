@@ -24,8 +24,7 @@ export const Route = createFileRoute("/_authenticated/viaturas")({
 type Vehicle = { id: string; prefix: string; plate: string; model: string | null; status: string };
 
 function VehiclesPage() {
-  const { allowed } = useStaffGuard();
-  if (!allowed) return null;
+  useStaffGuard();
   const { t } = useI18n();
   const { isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");

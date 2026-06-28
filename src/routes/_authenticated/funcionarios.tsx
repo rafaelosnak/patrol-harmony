@@ -59,8 +59,7 @@ const emptyProfile: EmployeeProfileInput = {
 };
 
 function EmployeesPage() {
-  const { allowed } = useStaffGuard();
-  if (!allowed) return null;
+  useStaffGuard();
   const { hasRole, user } = useAuth();
   const isStaff = hasRole("admin") || hasRole("supervisor");
   const isAdmin = isStaff;

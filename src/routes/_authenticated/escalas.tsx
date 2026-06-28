@@ -24,8 +24,7 @@ export const Route = createFileRoute("/_authenticated/escalas")({
 type Shift = { id: string; user_id: string; client_id: string | null; shift_type: string; start_at: string; end_at: string; status: string };
 
 function ShiftsPage() {
-  const { allowed } = useStaffGuard();
-  if (!allowed) return null;
+  useStaffGuard();
   const { t } = useI18n();
   const { hasRole, companyId } = useAuth();
   const canManage = hasRole("admin");

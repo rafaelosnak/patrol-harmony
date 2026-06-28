@@ -37,8 +37,7 @@ const wazeUrl = (addr: string) => `https://www.waze.com/ul?q=${encodeURIComponen
 const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`;
 
 function ClientsPage() {
-  const { allowed } = useStaffGuard();
-  if (!allowed) return null;
+  useStaffGuard();
   const { t } = useI18n();
   const { hasRole, companyId } = useAuth();
   const canWrite = hasRole("admin") || hasRole("supervisor");
