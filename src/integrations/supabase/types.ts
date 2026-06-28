@@ -529,6 +529,7 @@ export type Database = {
           company_id: string | null
           cpf: string | null
           created_at: string
+          default_shift_type: string | null
           email: string | null
           full_name: string
           hired_at: string | null
@@ -541,6 +542,7 @@ export type Database = {
           rg: string | null
           status: string
           updated_at: string
+          work_period: string | null
         }
         Insert: {
           address_city?: string | null
@@ -555,6 +557,7 @@ export type Database = {
           company_id?: string | null
           cpf?: string | null
           created_at?: string
+          default_shift_type?: string | null
           email?: string | null
           full_name?: string
           hired_at?: string | null
@@ -567,6 +570,7 @@ export type Database = {
           rg?: string | null
           status?: string
           updated_at?: string
+          work_period?: string | null
         }
         Update: {
           address_city?: string | null
@@ -581,6 +585,7 @@ export type Database = {
           company_id?: string | null
           cpf?: string | null
           created_at?: string
+          default_shift_type?: string | null
           email?: string | null
           full_name?: string
           hired_at?: string | null
@@ -593,6 +598,7 @@ export type Database = {
           rg?: string | null
           status?: string
           updated_at?: string
+          work_period?: string | null
         }
         Relationships: [
           {
