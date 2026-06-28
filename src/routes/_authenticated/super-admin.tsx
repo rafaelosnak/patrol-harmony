@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useMemo, useState } from "react";
-import { Crown, Plus, Pencil, CheckCircle2, AlertCircle, Ban, UserPlus, Mail } from "lucide-react";
+import { Crown, Plus, Pencil, CheckCircle2, AlertCircle, Ban, UserPlus, Mail, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, Pill } from "@/components/pg/ui";
 import { Button } from "@/components/ui/button";
