@@ -120,7 +120,7 @@ function EmployeesPage() {
         address_zip: editing.address_zip ?? "", notes: editing.notes ?? "",
         avatar_url: editing.avatar_url ?? "",
         default_shift_type: editing.default_shift_type ?? "12x36",
-        work_period: editing.work_period ?? "integral",
+        work_period: editing.work_period ?? "A",
         client_ids: assignments[editing.id] ?? [],
       });
     }
