@@ -23,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/rondas")({
   component: RoundsPage,
 });
 
+type TrackPoint = { lat: number; lng: number; t: number; acc?: number };
+
 type RoundRow = {
   id: string;
   user_id: string;
@@ -34,6 +36,7 @@ type RoundRow = {
   checkpoints_done: number;
   checkpoints_total: number;
   notes: string | null;
+  track: TrackPoint[] | null;
 };
 
 type Checkpoint = {
