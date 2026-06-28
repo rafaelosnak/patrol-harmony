@@ -339,27 +339,51 @@ function RoundsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Iniciar nova ronda</DialogTitle>
-            <DialogDescription>Defina pontos, trajeto e viatura desta ronda.</DialogDescription>
+            <DialogDescription>
+              Escolha o cliente. {isStaff ? "Você pode definir como será registrada." : "O modo já foi definido pelo gestor."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Quantidade de pontos</Label>
-              <Input
-                type="number" min={1} max={50}
-                value={startTotal}
-                onChange={(e) => setStartTotal(parseInt(e.target.value || "0", 10))}
-              />
+              <Label>Cliente</Label>
+              <Select value={startClientId} onValueChange={setStartClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(clientsList ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label>Trajeto da ronda</Label>
-              <Textarea
-                rows={3}
-                placeholder="Ex.: Portaria → Bloco A → Estacionamento → Bloco B → Garagem → Portaria"
-                value={startTrajeto}
-                onChange={(e) => setStartTrajeto(e.target.value)}
-                maxLength={1000}
-              />
-            </div>
+
+            {isStaff ? (
+              <div>
+                <Label>Como registrar esta ronda?</Label>
+                <Select value={startMode} onValueChange={(v) => setStartMode(v as "auto" | "checkpoints" | "track")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      Padrão do cliente {selectedClient ? `(${(selectedClient.default_round_mode ?? "checkpoints") === "track" ? "Trajeto GPS" : "Ponto a ponto"})` : ""}
+                    </SelectItem>
+                    <SelectItem value="checkpoints">Ponto a ponto (vigia registra cada ponto cadastrado)</SelectItem>
+                    <SelectItem value="track">Gravar trajeto (GPS grava o caminho automaticamente)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              selectedClient && (
+                <div className="rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
+                  Modo: <span className="font-medium text-foreground">
+                    {(selectedClient.default_round_mode ?? "checkpoints") === "track" ? "Gravação de trajeto por GPS" : "Registrar ponto a ponto"}
+                  </span>
+                </div>
+              )
+            )}
+
             <div>
               <Label>Viatura (opcional)</Label>
               <Select value={startVehicleId} onValueChange={setStartVehicleId}>
@@ -378,7 +402,7 @@ function RoundsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStartOpen(false)}>Cancelar</Button>
-            <Button onClick={() => start.mutate()} disabled={start.isPending || !startTotal}>
+            <Button onClick={() => start.mutate()} disabled={start.isPending || !startClientId}>
               <Play className="h-4 w-4" /> Iniciar
             </Button>
           </DialogFooter>
