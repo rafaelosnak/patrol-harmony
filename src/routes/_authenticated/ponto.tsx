@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { distanceMeters } from "@/lib/cep";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   component: PontoPage,
@@ -117,6 +118,9 @@ function PontoPage() {
     setSelfieFor(null);
     if (error) { toast.error(error.message); return; }
     toast.success(`${STEPS.find((s) => s.type === type)?.label} registrada`);
+    if (lat != null && lng != null && companyId) {
+      void checkPunchGeofence(user.id, companyId, lat, lng, type);
+    }
     load();
   };
 
