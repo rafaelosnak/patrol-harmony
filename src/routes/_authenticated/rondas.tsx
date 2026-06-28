@@ -37,6 +37,7 @@ type RoundRow = {
   checkpoints_total: number;
   notes: string | null;
   track: TrackPoint[] | null;
+  mode?: string | null;
 };
 
 type Checkpoint = {
@@ -82,8 +83,8 @@ function RoundsPage() {
   const [openLocations, setOpenLocations] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [startVehicleId, setStartVehicleId] = useState<string>("");
-  const [startTotal, setStartTotal] = useState<number>(6);
-  const [startTrajeto, setStartTrajeto] = useState<string>("");
+  const [startClientId, setStartClientId] = useState<string>("");
+  const [startMode, setStartMode] = useState<"auto" | "checkpoints" | "track">("auto");
   const [trackRound, setTrackRound] = useState<RoundRow | null>(null);
   const isStaff = hasRole("admin") || hasRole("supervisor");
 
@@ -162,6 +163,15 @@ function RoundsPage() {
     },
   });
 
+
+  const { data: clientsList } = useQuery({
+    queryKey: ["clients-min-rounds"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id,name,default_round_mode").order("name");
+      return (data ?? []) as { id: string; name: string; default_round_mode: string | null }[];
+    },
+  });
+
   const { data: vehicles } = useQuery({
     queryKey: ["vehicles-active"],
     queryFn: async () => {
@@ -172,25 +182,44 @@ function RoundsPage() {
   const vehicleMap: Record<string, string> = {};
   (vehicles ?? []).forEach((v) => { vehicleMap[v.id] = `${v.plate}${v.model ? ` — ${v.model}` : ""}`; });
 
+  const selectedClient = (clientsList ?? []).find((c) => c.id === startClientId);
+  const effectiveMode: "checkpoints" | "track" =
+    startMode === "auto"
+      ? ((selectedClient?.default_round_mode as "checkpoints" | "track" | null) ?? "checkpoints")
+      : startMode;
+
   const start = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      const total = Math.max(1, Math.min(50, Number(startTotal) || 6));
+      if (!startClientId) throw new Error("Selecione o cliente");
+      let total = 0;
+      if (effectiveMode === "checkpoints") {
+        const { count } = await supabase
+          .from("checkpoint_locations")
+          .select("id", { count: "exact", head: true })
+          .eq("active", true)
+          .eq("client_id", startClientId);
+        total = count ?? 0;
+        if (total === 0) throw new Error("Cliente não tem pontos cadastrados. Peça ao admin para cadastrar pontos.");
+      }
       const { data, error } = await supabase.from("rounds").insert({
-        user_id: user.id, checkpoints_total: total, checkpoints_done: 0,
+        user_id: user.id,
+        checkpoints_total: total,
+        checkpoints_done: 0,
         vehicle_id: startVehicleId || null,
-        notes: startTrajeto.trim() || null,
+        client_id: startClientId,
+        mode: effectiveMode,
         company_id: companyId!,
       }).select().single();
       if (error) throw error;
       return data as RoundRow;
     },
     onSuccess: (row) => {
-      toast.success("Ronda iniciada");
+      toast.success(row.mode === "track" ? "Ronda iniciada — gravando trajeto por GPS" : "Ronda iniciada — registre os pontos");
       qc.invalidateQueries({ queryKey: ["rounds"] });
       setStartOpen(false);
-      setStartVehicleId(""); setStartTotal(6); setStartTrajeto("");
-      setOpenRound(row);
+      setStartVehicleId(""); setStartClientId(""); setStartMode("auto");
+      if (row.mode === "checkpoints") setOpenRound(row);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao iniciar ronda"),
   });
@@ -310,27 +339,51 @@ function RoundsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Iniciar nova ronda</DialogTitle>
-            <DialogDescription>Defina pontos, trajeto e viatura desta ronda.</DialogDescription>
+            <DialogDescription>
+              Escolha o cliente. {isStaff ? "Você pode definir como será registrada." : "O modo já foi definido pelo gestor."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Quantidade de pontos</Label>
-              <Input
-                type="number" min={1} max={50}
-                value={startTotal}
-                onChange={(e) => setStartTotal(parseInt(e.target.value || "0", 10))}
-              />
+              <Label>Cliente</Label>
+              <Select value={startClientId} onValueChange={setStartClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(clientsList ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label>Trajeto da ronda</Label>
-              <Textarea
-                rows={3}
-                placeholder="Ex.: Portaria → Bloco A → Estacionamento → Bloco B → Garagem → Portaria"
-                value={startTrajeto}
-                onChange={(e) => setStartTrajeto(e.target.value)}
-                maxLength={1000}
-              />
-            </div>
+
+            {isStaff ? (
+              <div>
+                <Label>Como registrar esta ronda?</Label>
+                <Select value={startMode} onValueChange={(v) => setStartMode(v as "auto" | "checkpoints" | "track")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      Padrão do cliente {selectedClient ? `(${(selectedClient.default_round_mode ?? "checkpoints") === "track" ? "Trajeto GPS" : "Ponto a ponto"})` : ""}
+                    </SelectItem>
+                    <SelectItem value="checkpoints">Ponto a ponto (vigia registra cada ponto cadastrado)</SelectItem>
+                    <SelectItem value="track">Gravar trajeto (GPS grava o caminho automaticamente)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              selectedClient && (
+                <div className="rounded-md border border-border/60 p-2 text-xs text-muted-foreground">
+                  Modo: <span className="font-medium text-foreground">
+                    {(selectedClient.default_round_mode ?? "checkpoints") === "track" ? "Gravação de trajeto por GPS" : "Registrar ponto a ponto"}
+                  </span>
+                </div>
+              )
+            )}
+
             <div>
               <Label>Viatura (opcional)</Label>
               <Select value={startVehicleId} onValueChange={setStartVehicleId}>
@@ -349,7 +402,7 @@ function RoundsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStartOpen(false)}>Cancelar</Button>
-            <Button onClick={() => start.mutate()} disabled={start.isPending || !startTotal}>
+            <Button onClick={() => start.mutate()} disabled={start.isPending || !startClientId}>
               <Play className="h-4 w-4" /> Iniciar
             </Button>
           </DialogFooter>

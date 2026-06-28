@@ -206,7 +206,7 @@ function ShiftsPage() {
         <TabsList>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
           <TabsTrigger value="byuser">Por vigia</TabsTrigger>
-          <TabsTrigger value="swaps">Trocas {((swaps ?? []).filter(s => s.status === "pending").length) > 0 && <Pill tone="warn" className="ml-2">{(swaps ?? []).filter(s => s.status === "pending").length}</Pill>}</TabsTrigger>
+          <TabsTrigger value="swaps">Trocas {((swaps ?? []).filter(s => s.status === "pending").length) > 0 && <span className="ml-2"><Pill tone="warn">{(swaps ?? []).filter(s => s.status === "pending").length}</Pill></span>}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="calendar">

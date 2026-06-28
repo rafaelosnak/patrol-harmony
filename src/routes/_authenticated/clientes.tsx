@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ type Client = {
   document: string | null;
   contact: string | null;
   address: string | null;
+  default_round_mode: string | null;
   created_at: string;
 };
 
@@ -45,7 +47,7 @@ function ClientsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
-  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "" });
+  const [form, setForm] = useState({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
   const [previewClient, setPreviewClient] = useState<Client | null>(null);
   const geocodeFn = useServerFn(geocodeClient);
 
@@ -61,6 +63,7 @@ function ClientsPage() {
         document: form.document || null,
         contact: form.contact || null,
         address: form.address || null,
+        default_round_mode: form.default_round_mode || "checkpoints",
       };
       let clientId: string;
       if (editing) {
@@ -83,7 +86,7 @@ function ClientsPage() {
       toast.success(editing ? "Cliente atualizado" : "Cliente cadastrado");
       qc.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false); setEditing(null);
-      setForm({ name: "", document: "", contact: "", address: "" });
+      setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
@@ -94,10 +97,10 @@ function ClientsPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro"),
   });
 
-  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ name: "", document: "", contact: "", address: "", default_round_mode: "checkpoints" }); setOpen(true); };
   const openEdit = (c: Client) => {
     setEditing(c);
-    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "" });
+    setForm({ name: c.name, document: c.document ?? "", contact: c.contact ?? "", address: c.address ?? "", default_round_mode: c.default_round_mode ?? "checkpoints" });
     setOpen(true);
   };
 
@@ -143,6 +146,19 @@ function ClientsPage() {
                       />
                     </div>
                   )}
+                </div>
+                <div>
+                  <Label>Como o vigia registra a ronda neste cliente?</Label>
+                  <Select value={form.default_round_mode} onValueChange={(v) => setForm({ ...form, default_round_mode: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="checkpoints">Ponto a ponto (vigia confirma cada ponto cadastrado)</SelectItem>
+                      <SelectItem value="track">Gravar trajeto por GPS (sistema grava o caminho)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O admin define aqui. O vigia só inicia a ronda — não escolhe o modo.
+                  </p>
                 </div>
               </div>
               <DialogFooter>

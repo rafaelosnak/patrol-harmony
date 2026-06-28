@@ -300,6 +300,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          default_round_mode: string
           document: string | null
           geocoded_at: string | null
           id: string
@@ -315,6 +316,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          default_round_mode?: string
           document?: string | null
           geocoded_at?: string | null
           id?: string
@@ -330,6 +332,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          default_round_mode?: string
           document?: string | null
           geocoded_at?: string | null
           id?: string
@@ -703,6 +706,7 @@ export type Database = {
           company_id: string
           finished_at: string | null
           id: string
+          mode: string
           notes: string | null
           started_at: string
           status: string
@@ -717,6 +721,7 @@ export type Database = {
           company_id: string
           finished_at?: string | null
           id?: string
+          mode?: string
           notes?: string | null
           started_at?: string
           status?: string
@@ -731,6 +736,7 @@ export type Database = {
           company_id?: string
           finished_at?: string | null
           id?: string
+          mode?: string
           notes?: string | null
           started_at?: string
           status?: string
