@@ -141,6 +141,21 @@ function OccPage() {
                 <Label>{t("common.description")}</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} maxLength={1000} />
               </div>
+              <div>
+                <Label className="flex items-center gap-1"><Paperclip className="h-3 w-3" /> Foto ou vídeo (opcional)</Label>
+                <Input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  capture="environment"
+                  onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)}
+                />
+                {mediaFile && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {mediaFile.type.startsWith("video/") ? "🎥" : "📷"} {mediaFile.name} ({Math.round(mediaFile.size / 1024)} KB)
+                  </p>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
