@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { PageHeader, StatusDot } from "@/components/pg/ui";
+import { useNoVigiaGuard } from "@/hooks/use-staff-guard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
