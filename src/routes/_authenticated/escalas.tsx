@@ -24,7 +24,8 @@ type Shift = { id: string; user_id: string; client_id: string | null; shift_type
 
 function ShiftsPage() {
   const { t } = useI18n();
-  const { isStaff, hasRole, companyId } = useAuth();
+  const { hasRole, companyId } = useAuth();
+  const canManage = hasRole("admin");
   const canDelete = hasRole("admin");
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
