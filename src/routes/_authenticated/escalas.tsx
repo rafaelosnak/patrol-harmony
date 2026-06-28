@@ -206,7 +206,7 @@ function ShiftsPage() {
         <TabsList>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
           <TabsTrigger value="byuser">Por vigia</TabsTrigger>
-          <TabsTrigger value="swaps">Trocas {((swaps ?? []).filter(s => s.status === "pending").length) > 0 && <Pill tone="warning" className="ml-2">{(swaps ?? []).filter(s => s.status === "pending").length}</Pill>}</TabsTrigger>
+          <TabsTrigger value="swaps">Trocas {((swaps ?? []).filter(s => s.status === "pending").length) > 0 && <Pill tone="warn" className="ml-2">{(swaps ?? []).filter(s => s.status === "pending").length}</Pill>}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="calendar">
@@ -297,7 +297,7 @@ function ShiftsPage() {
                       </td>
                       <td className="px-3 py-2 text-xs">{sw.reason ?? "—"}</td>
                       <td className="px-3 py-2">
-                        <Pill tone={sw.status === "approved" ? "success" : sw.status === "rejected" ? "danger" : "warning"}>{sw.status}</Pill>
+                        <Pill tone={sw.status === "approved" ? "success" : sw.status === "rejected" ? "danger" : "warn"}>{sw.status}</Pill>
                       </td>
                       {canManage && (
                         <td className="px-3 py-2 text-right">
