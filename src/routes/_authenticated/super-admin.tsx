@@ -298,6 +298,7 @@ function SuperAdminPage() {
             onActivate={() => changeStatus.mutate({ id: c.id, status: "active" })}
             onOverdue={() => changeStatus.mutate({ id: c.id, status: "overdue" })}
             fetchAdmins={() => listAdminsFn({ data: { company_id: c.id } })}
+            onResetPassword={openResetForUser}
           />
         ))}
       </div>
