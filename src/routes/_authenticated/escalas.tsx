@@ -40,8 +40,12 @@ function ShiftsPage() {
   const [form, setForm] = useState(defaultForm);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["shifts"],
-    queryFn: async () => (await supabase.from("shifts").select("id,user_id,client_id,shift_type,start_at,end_at,status").order("start_at", { ascending: false }).limit(100)).data ?? [],
+    queryKey: ["shifts", viewerIsVigia ? user?.id : "all"],
+    queryFn: async () => {
+      let q = supabase.from("shifts").select("id,user_id,client_id,shift_type,start_at,end_at,status").order("start_at", { ascending: false }).limit(200);
+      if (viewerIsVigia && user) q = q.eq("user_id", user.id);
+      return (await q).data ?? [];
+    },
   });
   const { data: people } = useQuery({ queryKey: ["profiles-min"], queryFn: async () => (await supabase.from("profiles").select("id,full_name")).data ?? [] });
   const { data: clients } = useQuery({ queryKey: ["clients-min"], queryFn: async () => (await supabase.from("clients").select("id,name").order("name")).data ?? [] });
