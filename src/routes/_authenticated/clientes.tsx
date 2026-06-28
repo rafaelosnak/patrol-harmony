@@ -47,6 +47,9 @@ const fmtCNPJ = (s: string) => {
     .replace(/(\d{4})(\d)/, "$1-$2");
 };
 
+const gmapsUrl = (addr: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+const wazeUrl = (addr: string) => `https://www.waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`;
+
 const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`;
 
 function ClientsPage() {
