@@ -61,8 +61,15 @@ type CheckpointLocation = {
   client_id: string | null;
   lat: number | null;
   lng: number | null;
+  radius_meters: number;
   active: boolean;
 };
+
+function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const dx = (b.lat - a.lat) * 111000;
+  const dy = (b.lng - a.lng) * 111000 * Math.cos((a.lat * Math.PI) / 180);
+  return Math.sqrt(dx * dx + dy * dy);
+}
 
 function getPosition(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
