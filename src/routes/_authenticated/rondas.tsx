@@ -84,7 +84,39 @@ function RoundsPage() {
   const [startVehicleId, setStartVehicleId] = useState<string>("");
   const [startTotal, setStartTotal] = useState<number>(6);
   const [startTrajeto, setStartTrajeto] = useState<string>("");
+  const [trackRound, setTrackRound] = useState<RoundRow | null>(null);
   const isStaff = hasRole("admin") || hasRole("supervisor");
+
+  // GPS tracking for active rounds owned by the current user.
+  useEffect(() => {
+    if (!user) return;
+    const mine = (rounds ?? []).find((r) => r.user_id === user.id && r.status === "in_progress");
+    if (!mine) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const point: TrackPoint = {
+          lat: pos.coords.latitude, lng: pos.coords.longitude,
+          t: Date.now(), acc: pos.coords.accuracy,
+        };
+        const { data: cur } = await supabase.from("rounds").select("track").eq("id", mine.id).maybeSingle();
+        const prev = (cur?.track as unknown as TrackPoint[] | null) ?? [];
+        const last = prev[prev.length - 1];
+        // skip if movement < 8m or < 10s elapsed
+        if (last) {
+          const dt = point.t - last.t;
+          const dx = (point.lat - last.lat) * 111000;
+          const dy = (point.lng - last.lng) * 111000 * Math.cos((point.lat * Math.PI) / 180);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dt < 10000 || dist < 8) return;
+        }
+        await supabase.from("rounds").update({ track: [...prev, point] as unknown as never }).eq("id", mine.id);
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [user, rounds]);
 
   const { data: rounds, isLoading } = useQuery({
     queryKey: ["rounds"],
