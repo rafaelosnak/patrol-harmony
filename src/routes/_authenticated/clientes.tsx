@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { geocodeClient } from "@/lib/geocode.functions";
@@ -36,6 +37,8 @@ const wazeUrl = (addr: string) => `https://www.waze.com/ul?q=${encodeURIComponen
 const gmapsEmbed = (addr: string) => `https://www.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`;
 
 function ClientsPage() {
+  const { allowed } = useStaffGuard();
+  if (!allowed) return null;
   const { t } = useI18n();
   const { hasRole, companyId } = useAuth();
   const canWrite = hasRole("admin") || hasRole("supervisor");

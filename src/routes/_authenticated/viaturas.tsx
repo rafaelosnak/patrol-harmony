@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { useStaffGuard } from "@/hooks/use-staff-guard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/viaturas")({
@@ -23,6 +24,8 @@ export const Route = createFileRoute("/_authenticated/viaturas")({
 type Vehicle = { id: string; prefix: string; plate: string; model: string | null; status: string };
 
 function VehiclesPage() {
+  const { allowed } = useStaffGuard();
+  if (!allowed) return null;
   const { t } = useI18n();
   const { isStaff, hasRole, companyId } = useAuth();
   const canDelete = hasRole("admin");
