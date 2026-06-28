@@ -80,6 +80,8 @@ export const createEmployee = createServerFn({ method: "POST" })
       address_zip: data.address_zip ?? null,
       notes: data.notes ?? null,
       avatar_url: data.avatar_url ?? null,
+      default_shift_type: data.default_shift_type ?? null,
+      work_period: data.work_period ?? null,
     };
     await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", uid);
 
