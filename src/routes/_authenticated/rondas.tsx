@@ -253,10 +253,48 @@ function RoundsPage() {
   });
 
   const finish = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (r: RoundRow) => {
+      // Track-mode rounds: enforce reference trajectory matching
+      if (r.mode === "track" && r.client_id) {
+        const track = (r.track ?? []) as TrackPoint[];
+        const { data: cli } = await supabase
+          .from("clients")
+          .select("reference_track")
+          .eq("id", r.client_id).maybeSingle();
+        const ref = (cli?.reference_track as unknown as TrackPoint[] | null) ?? null;
+
+        if (!ref || ref.length < 5) {
+          // No reference yet — only managers can fix the trajectory
+          if (!isStaff) {
+            throw new Error("Este cliente ainda não tem trajeto cadastrado. Um gestor/admin precisa fazer a primeira ronda para fixar o trajeto.");
+          }
+          if (track.length < 5) throw new Error("Trajeto muito curto para virar referência. Faça o percurso completo.");
+          const { error: refErr } = await supabase.from("clients").update({
+            reference_track: track as unknown as never,
+            reference_track_set_at: new Date().toISOString(),
+            reference_track_set_by: user?.id ?? null,
+          }).eq("id", r.client_id);
+          if (refErr) throw refErr;
+          toast.success("Trajeto fixado como referência deste cliente");
+        } else {
+          // Compare against reference
+          const MATCH_M = 50;
+          const refHit = ref.filter((rp) => track.some((tp) => distMeters(rp, tp) < MATCH_M)).length;
+          const refCoverage = refHit / ref.length;
+          const trackOnRoute = track.length === 0 ? 0
+            : track.filter((tp) => ref.some((rp) => distMeters(rp, tp) < MATCH_M * 1.4)).length / track.length;
+          const ok = refCoverage >= 0.75 && trackOnRoute >= 0.6;
+          if (!ok && !isStaff) {
+            throw new Error(`Trajeto fora do percurso de referência (cobertura ${(refCoverage*100).toFixed(0)}%). Peça ao admin para finalizar.`);
+          }
+          if (!ok && isStaff) {
+            toast.warning(`Finalizando fora do percurso (cobertura ${(refCoverage*100).toFixed(0)}%)`);
+          }
+        }
+      }
       const { error } = await supabase.from("rounds").update({
         finished_at: new Date().toISOString(), status: "completed",
-      }).eq("id", id);
+      }).eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -340,7 +378,7 @@ function RoundsPage() {
                       <RouteIcon className="h-3 w-3" /> Trajeto{(r.track?.length ?? 0) > 0 ? ` (${r.track!.length})` : ""}
                     </Button>
                     {inProg && (
-                      <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)}>
+                      <Button size="sm" variant="outline" onClick={() => finish.mutate(r)}>
                         <Square className="h-3 w-3" /> {t("rounds.finish")}
                       </Button>
                     )}
