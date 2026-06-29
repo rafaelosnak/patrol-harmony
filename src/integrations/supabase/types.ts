@@ -312,6 +312,9 @@ export type Database = {
           longitude: number | null
           name: string
           notes: string | null
+          reference_track: Json | null
+          reference_track_set_at: string | null
+          reference_track_set_by: string | null
         }
         Insert: {
           address?: string | null
@@ -329,6 +332,9 @@ export type Database = {
           longitude?: number | null
           name: string
           notes?: string | null
+          reference_track?: Json | null
+          reference_track_set_at?: string | null
+          reference_track_set_by?: string | null
         }
         Update: {
           address?: string | null
@@ -346,6 +352,9 @@ export type Database = {
           longitude?: number | null
           name?: string
           notes?: string | null
+          reference_track?: Json | null
+          reference_track_set_at?: string | null
+          reference_track_set_by?: string | null
         }
         Relationships: [
           {
