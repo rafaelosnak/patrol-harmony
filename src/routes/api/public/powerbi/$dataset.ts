@@ -96,7 +96,8 @@ export const Route = createFileRoute("/api/public/powerbi/$dataset")({
           });
         }
 
-        return json({ dataset: params.dataset, count: data?.length ?? 0, data: data ?? [] }, 200);
+        const rows = (data ?? []) as unknown[];
+        return json({ dataset: params.dataset, count: rows.length, data: rows }, 200);
       },
     },
   },
