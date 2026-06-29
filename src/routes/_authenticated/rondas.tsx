@@ -378,7 +378,7 @@ function RoundsPage() {
                       <RouteIcon className="h-3 w-3" /> Trajeto{(r.track?.length ?? 0) > 0 ? ` (${r.track!.length})` : ""}
                     </Button>
                     {inProg && (
-                      <Button size="sm" variant="outline" onClick={() => finish.mutate(r.id)}>
+                      <Button size="sm" variant="outline" onClick={() => finish.mutate(r)}>
                         <Square className="h-3 w-3" /> {t("rounds.finish")}
                       </Button>
                     )}
