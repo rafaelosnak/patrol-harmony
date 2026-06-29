@@ -382,6 +382,7 @@ export type Database = {
           name: string
           notes: string | null
           plan: Database["public"]["Enums"]["company_plan"]
+          powerbi_api_key: string | null
           shift_a_end: string | null
           shift_a_start: string | null
           shift_b_end: string | null
@@ -406,6 +407,7 @@ export type Database = {
           name: string
           notes?: string | null
           plan?: Database["public"]["Enums"]["company_plan"]
+          powerbi_api_key?: string | null
           shift_a_end?: string | null
           shift_a_start?: string | null
           shift_b_end?: string | null
@@ -430,6 +432,7 @@ export type Database = {
           name?: string
           notes?: string | null
           plan?: Database["public"]["Enums"]["company_plan"]
+          powerbi_api_key?: string | null
           shift_a_end?: string | null
           shift_a_start?: string | null
           shift_b_end?: string | null

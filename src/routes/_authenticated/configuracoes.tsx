@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { PowerBiCard } from "@/components/powerbi-card";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — PhytonGuard" }] }),
@@ -82,6 +83,11 @@ function SettingsPage() {
       </div>
 
       {!isSuperAdmin && roles.includes("admin") && companyId && <ShiftHoursCard companyId={companyId} />}
+      {!isSuperAdmin && roles.includes("admin") && companyId && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PowerBiCard companyId={companyId} />
+        </div>
+      )}
     </div>
   );
 }

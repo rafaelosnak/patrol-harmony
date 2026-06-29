@@ -31,6 +31,7 @@ import { Route as AuthenticatedComunicadosRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedAlertasRouteImport } from './routes/_authenticated/alertas'
+import { Route as ApiPublicPowerbiDatasetRouteImport } from './routes/api/public/powerbi/$dataset'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -146,6 +147,11 @@ const AuthenticatedAlertasRoute = AuthenticatedAlertasRouteImport.update({
   path: '/alertas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicPowerbiDatasetRoute = ApiPublicPowerbiDatasetRouteImport.update({
+  id: '/api/public/powerbi/$dataset',
+  path: '/api/public/powerbi/$dataset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
+  '/api/public/powerbi/$dataset': typeof ApiPublicPowerbiDatasetRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/super-admin': typeof AuthenticatedSuperAdminRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/viaturas': typeof AuthenticatedViaturasRoute
+  '/api/public/powerbi/$dataset': typeof ApiPublicPowerbiDatasetRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/_authenticated/super-admin': typeof AuthenticatedSuperAdminRoute
   '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/viaturas': typeof AuthenticatedViaturasRoute
+  '/api/public/powerbi/$dataset': typeof ApiPublicPowerbiDatasetRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/suporte'
     | '/viaturas'
+    | '/api/public/powerbi/$dataset'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/suporte'
     | '/viaturas'
+    | '/api/public/powerbi/$dataset'
   id:
     | '__root__'
     | '/'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/_authenticated/super-admin'
     | '/_authenticated/suporte'
     | '/_authenticated/viaturas'
+    | '/api/public/powerbi/$dataset'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -296,6 +308,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicPowerbiDatasetRoute: typeof ApiPublicPowerbiDatasetRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -454,6 +467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlertasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/powerbi/$dataset': {
+      id: '/api/public/powerbi/$dataset'
+      path: '/api/public/powerbi/$dataset'
+      fullPath: '/api/public/powerbi/$dataset'
+      preLoaderRoute: typeof ApiPublicPowerbiDatasetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -507,6 +527,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicPowerbiDatasetRoute: ApiPublicPowerbiDatasetRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
