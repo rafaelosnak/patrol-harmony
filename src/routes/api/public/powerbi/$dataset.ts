@@ -67,9 +67,18 @@ export const Route = createFileRoute("/api/public/powerbi/$dataset")({
         }
         if (company.status !== "active") return json({ error: "Company not active" }, 403);
 
-        let q = supabaseAdmin.from(ds.table).select(ds.select).eq("company_id", companyId).limit(limit);
-        if (ds.orderBy) q = q.order(ds.orderBy, { ascending: false });
-        const { data, error } = await q;
+        const sb = supabaseAdmin as unknown as {
+          from: (t: string) => {
+            select: (s: string) => {
+              eq: (c: string, v: string) => {
+                limit: (n: number) => { order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown; error: { message: string } | null }> } & Promise<{ data: unknown; error: { message: string } | null }>;
+              };
+            };
+          };
+        };
+        let q = sb.from(ds.table).select(ds.select).eq("company_id", companyId).limit(limit);
+        const res = ds.orderBy ? await q.order(ds.orderBy, { ascending: false }) : await q;
+        const { data, error } = res;
         if (error) return json({ error: error.message }, 500);
 
         if (format === "csv") {
